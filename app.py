@@ -77,7 +77,7 @@ if st.button("🚀 Vyhodnotit Daytrade Scénář", type="primary"):
   else:
     with st.spinner("AI vyhodnocuje intradenní Price Action a makro..."):
       try:
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel('gemini-2.5-flash')
 
         # Prompt zaměřený na daytrading, trend, přesnou cenu a procentuální šanci
         prompt = f"""
