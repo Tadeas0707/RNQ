@@ -32,7 +32,7 @@ else:
 # Funkce pro stažení živých zpráv
 @st.cache_data(ttl=300)
 def fetch_latest_news():
-  rss_url = "https://news.google.com/rss/search?q=Nasdaq+NQ+futures+stock+market+macro&hl=en-US&gl=US&ceid=US:en"
+  rss_url = "https://news.google.com/rss/search?q=Nasdaq+NQ+futures+stock+market+macro&hl=en-US&gl=US&ceid=US:en&tbs=qdr:d"
   feed = feedparser.parse(rss_url)
   headlines = []
   for entry in feed.entries[:10]:
