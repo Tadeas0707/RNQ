@@ -32,11 +32,19 @@ else:
 # Funkce pro stažení živých zpráv
 @st.cache_data(ttl=300)
 def fetch_latest_news():
-  rss_url = "https://news.google.com/rss/search?q=Nasdaq+NQ+futures+stock+market+macro&hl=en-US&gl=US&ceid=US:en&tbs=qdr:d"
+  # Přidán operátor when:1d přímo do dotazu pro 100% filtr na 24 hodin
+  rss_url = "https://news.google.com/rss/search?q=Nasdaq+NQ+futures+stock+market+macro+when:1d&hl=en-US&gl=US&ceid=US:en"
   feed = feedparser.parse(rss_url)
   headlines = []
   for entry in feed.entries[:10]:
     headlines.append(f"- {entry.title} ({entry.published})")
+
+  if not headlines:
+    return (
+        "Žádné čerstvé zprávy za posledních 24 hodin nebyly nalezeny."
+        " Obchodujeme čistě podle Price Action."
+    )
+
   return "\n".join(headlines)
 
 
