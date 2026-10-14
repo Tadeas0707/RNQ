@@ -101,7 +101,7 @@ PRAVIDLA PRO VYHODNOCENÍ (BUĎ VELMI KRITICKÝ A PŘÍSNÝ):
 3. Vždy jasně definuj:
    - **Hlavní trend / Směr** (Long / Short / Neutral)
    - **Vstupní zónu**
-   - **Cílovou cenu (Take Profit)** s reálným RRR (Risk-Reward Ratio alespoň 1:2)
+   - **Cílovou cenu (Take Profit)** s reálným RRR (Risk-Reward Ratio alespoň 1:1,3)
    - **Invalidaci (Stop Loss)**
    - **Procentuální šanci na úspěch** (Buď realistický, 90% dávej jen naprostým výjimkám, kdy se slévá silná technická a makro úroveň).
 
