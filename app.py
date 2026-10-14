@@ -87,30 +87,27 @@ if st.button("🚀 Vyhodnotit Daytrade Scénář", type="primary"):
       try:
         model = genai.GenerativeModel("gemini-3.8-flash")
 
-        # Prompt zaměřený na daytrading, trend, přesnou cenu a procentuální šanci
-        prompt = f"""
-                Jsi elitní intradenní daytrader na Nasdaq 100 futures (NQ). Zaměřuješ se výhradně na DAYTRADING a skalpování (horizont v řádu minut až hodin, maximálně do konce dnešní seance).
+        # Přísnější prompt pro AI, zaměřený na vysokou přesnost a eliminaci šumu
+prompt = f"""
+Jsi špičkový profesionální kvantitativní trader a analytik se zaměřením na daytrading Nasdaq (NQ) futures.
+Tvým úkolem je analyzovat přiložený screenshot grafu (Price Action, S/R úrovně, struktura trhu) společně s těmito čerstvými makro zprávami:
+{st.session_state.get('news', 'Žádné zprávy k dispozici.')}
 
-                ANALYZUJ NÁSLEDUJÍCÍ DATA:
-                1. Přiložený detailní screenshot grafu (hledej S/R zóny, liquidity sweeps, momentum, svíčkové formace a intradenní strukturu).
-                2. Aktuální zprávy z trhu:
-                {st.session_state['news']}
+PRAVIDLA PRO VYHODNOCENÍ (BUĎ VELMI KRITICKÝ A PŘÍSNÝ):
+1. NEHLEDEJ OBCHODY ZA KAŽDOU CENU. Pokud graf a makro nemají jasnou shodu nebo je trh v silné konsolidaci/šumu, dej nízkou pravděpodobnost úspěchu (pod 50 %).
+2. Vysokou pravděpodobnost (nad 75-80 %) uděluj POUZE tehdy, když graf jasně ukazuje:
+   - Test klíčové S/R úrovně (Support/Resistance) nebo Order Blocku.
+   - Jasný konfluentní faktor s makro zprávami (např. silný USD/makro tisk podpořící trend).
+   - Čistou strukturu Price Action (např. BOS - Break of Structure, CHoCH).
+3. Vždy jasně definuj:
+   - **Hlavní trend / Směr** (Long / Short / Neutral)
+   - **Vstupní zónu**
+   - **Cílovou cenu (Take Profit)** s reálným RRR (Risk-Reward Ratio alespoň 1:2)
+   - **Invalidaci (Stop Loss)**
+   - **Procentuální šanci na úspěch** (Buď realistický, 90% dávej jen naprostým výjimkám, kdy se slévá silná technická a makro úroveň).
 
-                POSKYTNI ODPOVĚĎ V TOMTO ZPRACUJE PODROBNÉM FORMÁTU:
-
-                ### 📌 INTRADENNÍ TREND
-                - **Očekávaný trend**: [BULLISH / BEARISH / SIDEWAYS]
-                - **Procentuální pravděpodobnost naplnění**: [X %] (např. 75 %)
-
-                ### 🎯 CÍLOVÁ CENA NQ
-                - **Předpokládaná cílová cena (Take Profit)**: [Přesná cenová hladina NQ, např. 20 450]
-                - **Invalidace scénáře (Stop Loss zóna)**: [Cenová hladina, kde scénář přestává platit]
-
-                ### 🔍 DETAILECH O PRICE ACTION & MAKRO
-                - **Struktura trhu (Graf)**: Co přesně vidíš na grafu za daytrading příležitost.
-                - **Vliv makro zpráv**: Jak stažené zprávy ovlivňují dnešní volatility a směr.
-                - **Doporučený postup**: Kdy vstoupit, na co si dát pozor při dnešním obchodování.
-                """
+Odpověď strukturuj přehledně v češtině.
+"""
 
         response = model.generate_content([prompt, image])
 
