@@ -29,11 +29,10 @@ else:
   st.sidebar.warning("Prosím zadej svůj bezplatný API klíč.")
 
 
-# Funkce pro stažení živých makro zpráv pro NQ a USD
-@st.cache_data(ttl=300)
+# Funkce pro stažení živých makro zpráv bez cachování (vždy čerstvé po kliknutí)
 def fetch_latest_news():
-  # Rozšířený dotaz na ekonomický kalendář, Fed, USD a Nasdaq vlivy s filtrem na poslední dny
-  rss_url = "https://news.google.com/rss/search?q=(Nasdaq+OR+NQ+futures+OR+USD+OR+FOMC+OR+CPI+OR+Fed)+economic+calendar+when:2d&hl=en-US&gl=US&ceid=US:en"
+  # Čistý a spolehlivý dotaz s filtrem na posledních 24 hodin (when:1d)
+  rss_url = "https://news.google.com/rss/search?q=Nasdaq+futures+Federal+Reserve+macro+when:1d&hl=en-US&gl=US&ceid=US:en"
   feed = feedparser.parse(rss_url)
   headlines = []
   for entry in feed.entries[:10]:
@@ -41,8 +40,8 @@ def fetch_latest_news():
 
   if not headlines:
     return (
-        "Žádné čerstvé makro zprávy nebyly nalezeny. Obchodujeme primárně"
-        " podle Price Action z grafu."
+        "Žádné čerstvé zprávy za posledních 24 hodin nebyly nalezeny."
+        " Obchodujeme primárně podle Price Action z grafu."
     )
 
   return "\n".join(headlines)
