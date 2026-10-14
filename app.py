@@ -83,12 +83,12 @@ if st.button("🚀 Vyhodnotit Daytrade Scénář", type="primary"):
   elif "news" not in st.session_state or uploaded_file is None:
     st.warning("Ujisti se, že máš načtené zprávy i nahraný graf!")
   else:
-    with st.spinner("AI vyhodnocuje intradenní Price Action a makro..."):
-      try:
-        model = genai.GenerativeModel("gemini-3.8-flash")
+        with st.spinner("AI vyhodnocuje intradenní Price Action a makro..."):
+          try:
+            model = genai.GenerativeModel("gemini-3.8-flash")
 
-        # Přísnější prompt pro AI, zaměřený na vysokou přesnost a eliminaci šumu
-prompt = f"""
+            # Definice promptu uvnitř try bloku
+            prompt = f"""
 Jsi špičkový profesionální kvantitativní trader a analytik se zaměřením na daytrading Nasdaq (NQ) futures.
 Tvým úkolem je analyzovat přiložený screenshot grafu (Price Action, S/R úrovně, struktura trhu) společně s těmito čerstvými makro zprávami:
 {st.session_state.get('news', 'Žádné zprávy k dispozici.')}
@@ -109,10 +109,10 @@ PRAVIDLA PRO VYHODNOCENÍ (BUĎ VELMI KRITICKÝ A PŘÍSNÝ):
 Odpověď strukturuj přehledně v češtině.
 """
 
-        response = model.generate_content([prompt, image])
+            response = model.generate_content([prompt, image])
 
-        st.success("Analýza je hotová!")
-        st.markdown(response.text)
+            st.success("Analýza je hotová!")
+            st.markdown(response.text)
 
-      except Exception as e:
-        st.error(f"Nastala chyba: {e}")
+          except Exception as e:
+            st.error(f"Nastala chyba: {e}")
