@@ -87,9 +87,25 @@ if st.button("🚀 Vyhodnotit Daytrade Scénář", type="primary"):
             model = genai.GenerativeModel("gemini-3.8-flash")
             # Definice promptu uvnitř try bloku
             prompt = f"""
-Jsi špičkový profesionální kvantitativní trader a analytik se zaměřením na daytrading Nasdaq (NQ) futures.
-Tvým úkolem je analyzovat přiložený screenshot grafu (Price Action, S/R úrovně, struktura trhu) společně s těmito čerstvými makro zprávami:
+Jsi elitní kvantitativní trader, institucionální risk manager a Price Action expert se specializací výhradně na Nasdaq (NQ) futures. 
+Tvým úkolem je provést nemilosrdně objektivní a hlubkovou analýzu přiloženého screenshotu grafu a propojit ji s těmito čerstvými makro zprávami:
 {st.session_state.get('news', 'Žádné zprávy k dispozici.')}
+
+TVÁ ANALYTICKÁ METODIKA:
+1. **Konfluence Makro + Technika:** Zhodnoť, zda aktuální makro zprávy (Fed, USD, inflace) podporují long nebo short stranu, případně zda vytvářejí rizikové prostředí (vysoká volatilita / konsolidace).
+2. **Price Action a Struktura trhu:** Na grafu identifikuj klíčové prvky:
+   - Aktuální likviditu a Order Blocky / S/R zóny.
+   - Tržní strukturu (zda jde o trend, BOS - Break of Structure, CHoCH, nebo nerozhodnou akumuaci/distribuci v rozsahu).
+3. **Pravidlo nulové tolerance k šumu:** Pokud graf a makro nedávají dohromady křišťálově čistou, vysoce pravděpodobnou příležitost, povinně vyhodnoť směr jako **"NO TRADE"** a šanci na úspěch nastav pod 50 %. Nehledej obchody silou.
+
+POVINNÁ STRUKTURA VÝSTUPU (odpovídej striktně v tomto formátu v češtině):
+- **Tržní bias / Směr:** [Long / Short / Neutral / NO TRADE]
+- **Klíčová úroveň (Vstupní zóna):** [Přesná cenová hladina nebo zóna]
+- **Take Profit (TP):** [Cílová cena s minimálním RRR 1:2]
+- **Stop Loss / Invalidace (SL):** [Hladina, kde analýza padá a trade končí]
+- **Procentuální šance na úspěch:** [0-100% – buď extrémně kritický, nad 80% dávej jen při dokonalé shodě makra a techniky]
+- **Profesionální zdůvodnění:** [Stručné, věcné rozebrání proč trade vzít nebo nechat být, včetně propojení s makrem]
+"""
 
 PRAVIDLA PRO VYHODNOCENÍ (BUĎ VELMI KRITICKÝ A PŘÍSNÝ):
 1. NEHLEDEJ OBCHODY ZA KAŽDOU CENU. Pokud graf a makro nemají jasnou shodu nebo je trh v silné konsolidaci/šumu, dej nízkou pravděpodobnost úspěchu (pod 50 %).
