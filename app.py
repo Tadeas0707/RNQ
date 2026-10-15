@@ -84,8 +84,7 @@ if st.button("🚀 Vyhodnotit Daytrade Scénář", type="primary"):
   else:
         with st.spinner("AI vyhodnocuje intradenní Price Action a makro..."):
           try:
-            model = genai.GenerativeModel("gemini-3.8-flash")
-
+            model = genai.GenerativeModel("gemini-1.5-flash")
             # Definice promptu uvnitř try bloku
             prompt = f"""
 Jsi špičkový profesionální kvantitativní trader a analytik se zaměřením na daytrading Nasdaq (NQ) futures.
