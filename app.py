@@ -169,43 +169,44 @@ if st.button("🚀 Vyhodnotit Multi-Timeframe Scénář", type="primary"):
         # Pokročilý prompt s Chain-of-Thought a Bodovacím systémem
         prompt = f"""
 Jsi špičkový institucionální kvantitativní trader a risk manager zaměřený na daytrading Nasdaq (NQ) futures.
-Tvým úkolem je provést nekompromisně přesnou Multi-Timeframe analýzu.
+Tvým úkolem je provést nekompromisně přesnou Multi-Timeframe analýzu včetně časového plánu a řízení rizik.
 
 DODANÉ VSTUPY:
 - **Vyšší časový rámec (TF1):** {tf_higher}
 - **Nižší časový rámec (TF2):** {img2_status}
-- **Makro zprávy:** {st.session_state.get('news')}
+- **Makro zprávy & Časy vydání:** {st.session_state.get('news')}
 - **Red-Flag Varování:** {st.session_state.get('red_flag')}
 
 PROVEDEŠ ANALÝZU KROK ZA KROKEM (CHAIN-OF-THOUGHT):
 
-**KROK 1: Makro Kontext & Red-Flag Kontrola**
-Vyhodnoť, zda aktuální fundamety podporují Long/Short nebo zda je trh před extrémně rizikovou událostí.
+**KROK 1: Makro Kontext & Výpočet Časové Pauzy (Red-Flag)**
+- Zhodnoť, zda zprávy obsahují časově citlivé události (CPI, FOMC). 
+- Pokud ano, urči z textu přesný čas jejich vydání a vypočti **doporučenou délku pauzy** (např. „Neobchodovat 30–45 minut po zveřejnění do [čas]“).
 
-**KROK 2: Analýza Vyššího TF ({tf_higher})**
-Urči hlavní trend, klíčové S/R úrovně, Order Blocky a kde se nachází hlavicová likvidita.
+**KROK 2: Analýza Vyššího TF ({tf_higher}) & Nižšího TF**
+- Urči trend, S/R úrovně a zkontroluj případné fakeouty (sweep likvidity).
 
-**KROK 3: Analýza Nižšího TF a Detekce Falešných Proražení (Fakeouts)**
-Hledej strukturu (BOS, CHoCH) a zkontroluj, zda nedošlo k falešnému proražení (sweepu) předchozího High/Low pro vymetení retailových Stop Lossů.
+**KROK 3: Odhad Časového Horizontu obchodu**
+- Na základě zvoleného timeframe a vzdálenosti k TP odhadni reálný čas, za jaký může cena dojít k Take Profitu (např. „Očekávaný čas do dosažení TP: 45–90 minut“).
 
 **KROK 4: Výpočet Matematického Skóre Konfluence (0-100 bodů)**
-Přiřaď body podle této matice:
 - Podpora makro prostředí: 0 až 30 bodů
 - Jasná S/R úroveň / Order Block na vyšším TF: 0 až 30 bodů
-- Čistá struktura a potvrzený vstup na nižším TF (bez pasti): 0 až 40 bodů
+- Čistá struktura na nižším TF (bez pasti): 0 až 40 bodů
 *CELKOVÉ SKÓRE KONFLUENCE:* (sečti body)
 
-**PROVOZNÍ PRAVIDLO:** Pokud je celkové skóre NIŽŠÍ NEŽ 80 BODŮ, tvůj finální verdikt MUSÍ BÝT **"NO TRADE"**.
+**PROVOZNÍ PRAVIDLO:** Pokud je celkové skóre NIŽŠÍ NEŽ 80 BODŮ, nebo pokud probíhá aktivní Red-Flag okno, tvůj finální verdikt MUSÍ BÝT **"NO TRADE"**.
 
 VÝSTUPNÍ STRUKTURA (Odpověz striktně v češtině v tomto formátu):
 
-1. **Detailní myšlenkový postup (Chain-of-Thought):** (Stručný popis Kroků 1-3)
-2. **Matematické skóre konfluence:** [X / 100 bodů]
-3. **Finální Verdikt / Směr:** [LONG / SHORT / NEUTRAL / NO TRADE]
-4. **Přesná Vstupní Zóna:** [Cenová hladina]
-5. **Take Profit (TP):** [Cílová cena - RRR min 1:2]
-6. **Podmíněný Stop Loss / Invalidace:** [Přesná hladina + podmínka, např. 'pokud M5 svíčka zavře pod touto cenou']
-7. **Doporučení pro exekuci:** (Stručné rady pro řízení obchodu)
+1. **Časový manažment & Red-Flag pauza:** [Zde uveď, zda se může obchodovat hned, nebo jak dlouho po zprávě držet pauzu]
+2. **Detailní myšlenkový postup (Chain-of-Thought):** (Stručný popis analýzy)
+3. **Matematické skóre konfluence:** [X / 100 bodů]
+4. **Finální Verdikt / Směr:** [LONG / SHORT / NEUTRAL / NO TRADE]
+5. **Přesná Vstupní Zóna:** [Cenová hladina]
+6. **Take Profit (TP) + Odhad času:** [Cílová cena + předpokládaný časový horizont do dosažení TP]
+7. **Podmíněný Stop Loss / Invalidace:** [Přesná hladina + podmínka uzavření svíčky]
+8. **Doporučení pro exekuci:** (Stručné rady)
 """
 
         # Odeslání požadavku na Gemini
