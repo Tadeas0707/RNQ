@@ -7,18 +7,18 @@ import streamlit as st
 
 # Nastavení aplikace
 st.set_page_config(
-    page_title="NQ quantitative terminal - Institutional Edition",
+    page_title="NQ Daytrading AI Agent - Quant Edition",
     page_icon="⚡",
     layout="wide",
 )
 
 st.title(
-    "⚡ NQ Daytrading AI Agent (Time-Gated, VIX-Aware & RRR Math System)"
+    "⚡ NQ Daytrading AI Agent (Quant, MSS, DXY-Yields & Self-Reflection System)"
 )
 st.markdown(
     "Institucionální analytický systém pro daytrading Nasdaq (NQ) futures."
-    " Kombinuje Multi-Timeframe Price Action, detekci VIXu, časový filtr a"
-    " kalkulaci RRR."
+    " Kombinuje Multi-Timeframe Price Action, mezitržní korelace (DXY/US10Y),"
+    " MSS strukturu a dvoufázovou oponenturu."
 )
 
 # Postranní panel
@@ -65,10 +65,10 @@ def process_image(image_file):
   return img
 
 
-# 3. Inteligentní filtr makro zpráv & VIX & Red-Flag skener
+# 3. Inteligentní filtr makro zpráv & DXY / US10Y / VIX & Red-Flag skener
 def fetch_filtered_news():
-  # Hledáme cílená makro data včetně VIXu a úrokových sazeb
-  rss_url = "https://news.google.com/rss/search?q=(Nasdaq+OR+NQ+OR+Fed+OR+FOMC+OR+CPI+OR+USD+OR+VIX)+when:1d&hl=en-US&gl=US&ceid=US:en"
+  # Hledáme cílená makro data včetně DXY, US10Y dluhopisů a VIXu
+  rss_url = "https://news.google.com/rss/search?q=(Nasdaq+OR+NQ+OR+Fed+OR+FOMC+OR+CPI+OR+USD+OR+DXY+OR+treasury+yields+OR+VIX)+when:1d&hl=en-US&gl=US&ceid=US:en"
   feed = feedparser.parse(rss_url)
 
   relevant_keywords = [
@@ -83,7 +83,10 @@ def fetch_filtered_news():
       "futures",
       "powell",
       "vix",
-      "volatility",
+      "dxy",
+      "dollar",
+      "yields",
+      "treasury",
   ]
   headlines = []
   red_flags = []
@@ -106,7 +109,7 @@ def fetch_filtered_news():
         red_flags.append(entry.title)
 
   news_text = (
-      "\n".join(headlines[:8])
+      "\n".join(headlines[:10])
       if headlines
       else "Žádné zásadní makro zprávy za 24h nebyly nalezeny."
   )
@@ -122,7 +125,7 @@ curr_time, is_lunch, is_main = check_trading_window()
 col1, col2 = st.columns(2)
 
 with col1:
-  st.subheader("1. Živé makro zprávy & Red-Flag Skener")
+  st.subheader("1. Živé makro zprávy (DXY, US10Y, VIX) & Red-Flag")
   st.caption(f"🕒 Aktuální čas (SEČ): **{curr_time}**")
 
   if is_lunch:
@@ -131,8 +134,8 @@ with col1:
         " SEČ). Trh má nízkou likviditu a zvýšené riziko falešných pohybů."
     )
 
-  if st.button("🔄 Načíst a přefiltrovat zprávy (vč. VIX)"):
-    with st.spinner("Skenuji makro události a VIX..."):
+  if st.button("🔄 Načíst a přefiltrovat zprávy (vč. DXY, Výnosů & VIX)"):
+    with st.spinner("Skenuji mezitržní korelátory a makro..."):
       news, red_flag, rf_list = fetch_filtered_news()
       st.session_state["news"] = news
       st.session_state["red_flag"] = red_flag
@@ -145,7 +148,7 @@ with col1:
           + "\n".join(st.session_state["rf_list"])
       )
     st.text_area(
-        "Filtrované zprávy a VIX pro AI:",
+        "Filtrované makro, DXY, Výnosy a VIX pro AI:",
         st.session_state["news"],
         height=180,
         disabled=True,
@@ -154,7 +157,15 @@ with col1:
     st.info("Klikni na tlačítko pro načtení makro dat.")
 
 with col2:
-  st.subheader("2. Multi-Timeframe Grafy (TradingView)")
+  st.subheader("2. Multi-Timeframe Grafy & Session Kontext")
+
+  # Kontext seance
+  is_trending_day = st.checkbox(
+      "Včerejší den byl silně trendový (Trend Continuation)"
+  )
+  is_gap_open = st.checkbox("Trh dnes otevřel s výrazným cenovým gapem (Mezera)")
+
+  st.markdown("---")
   tf_higher = st.selectbox(
       "Časový rámec 1. grafu (Vyšší TF):", ["15M", "1H", "4H"], index=0
   )
@@ -184,7 +195,8 @@ if st.button("🚀 Vyhodnotit Multi-Timeframe Scénář", type="primary"):
     )
   else:
     with st.spinner(
-        "AI provádí hloubkovou Chain-of-Thought analýzu a výpočet RRR..."
+        "AI provádí hloubkovou Chain-of-Thought analýzu, dvoufázovou oponenturu"
+        " a výpočet RRR..."
     ):
       try:
         model = genai.GenerativeModel("gemini-3.8-flash")
@@ -200,50 +212,54 @@ if st.button("🚀 Vyhodnotit Multi-Timeframe Scénář", type="primary"):
           images_payload.append(img2)
           img2_status = f"Nahrán ({tf_lower})"
 
-        # Pokročilý prompt s VIXem, Time-Gatingem a Matematikou RRR
+        # Pokročilý prompt s DXY, MSS, Self-Reflection Oponenturou a Kontextem Seance
         prompt = f"""
-Jsi špičkový institucionální kvantitativní trader a risk manager zaměřený na daytrading Nasdaq (NQ) futures.
-Tvým úkolem je provést nekompromisně přesnou Multi-Timeframe analýzu s důrazem na matematiku RRR a časové okno.
+Jsi elitní kvantitativní trader a institucionální risk manager zaměřený výhradně na daytrading Nasdaq (NQ) futures.
+Tvým úkolem je provést nemilosrdně přísnou Multi-Timeframe analýzu s využitím mezitržních korelací (DXY/Yields), konceptu MSS (Market Structure Shift) a dvoufázové oponentury.
 
 DODANÉ VSTUPY:
 - **Aktuální čas analýzy (SEČ):** {curr_time}
 - **Status obědové pauzy:** {'ANO (Zvýšené riziko)' if is_lunch else 'NE (Standardní hodiny)'}
+- **Kontext seance:** {'Včera silný trend | ' if is_trending_day else ''}{'Dnes Gap Open | ' if is_gap_open else 'Standardní otvírací kontext'}
 - **Vyšší časový rámec (TF1):** {tf_higher}
 - **Nižší časový rámec (TF2):** {img2_status}
-- **Makro zprávy & VIX:** {st.session_state.get('news')}
+- **Makro zprávy (DXY, Yields, VIX, Fed):** {st.session_state.get('news')}
 - **Red-Flag Varování:** {st.session_state.get('red_flag')}
 
-PROVEDEŠ ANALÝZU KROK ZA KROKEM (CHAIN-OF-THOUGHT):
+PROVEDEŠ ANALÝZU KROK ZA KROKEM (CHAIN-OF-THOUGHT & SELF-REFLECTION):
 
-**KROK 1: Makro Kontext, VIX & Časové Okno**
-- Vyhodnoť náladu trhu z VIXu a makra. Zhodnoť, zda aktuální čas ({curr_time}) spadá do obědové pauzy nebo před Red-Flag událost.
+**KROK 1: Mezitržní analýza (DXY & US10Y) a VIX**
+- Zhodnoť, zda vývoj na US Dolaru (DXY) nebo výnosech 10letých dluhopisů (US10Y) nepotvrzuje falešné proražení na NQ. Pokud DXY/Yields posilují, buď extrémně opatrný u Longů na NQ.
 
-**KROK 2: Analýza Vyššího TF ({tf_higher}) & Nižšího TF**
-- Urči trend, S/R zóny, Order Blocky a zkontroluj případné fakeouty (falešná proražení pre-market high/low pro vymetení retailu).
+**KROK 2: Analýza Vyššího TF ({tf_higher}) & Kontext Seance**
+- Urči hlavního hybatele, klíčové S/R úrovně a zohledni, zda včerejší trendový den nebo dnešní Gap nevyžadují navrácení k průměru (Mean Reversion) či pokračování trendu.
 
-**KROK 3: Výpočet Matematického RRR (Risk-Reward Ratio)**
-- Definuj přesný Vstup, TP a SL. Počítej RRR = (TP - Vstup) / (Vstup - SL).
-- **STRIKTNÍ PRAVIDLO:** Pokud je vyčíslené RRR MENŠÍ NEŽ 1:2 (tj. < 2.0), trade zamítni s verdiktem **NO TRADE**.
+**KROK 3: Kontrola Market Structure Shift (MSS) na Nižším TF**
+- NEVOLEJ VSTUP při prvním nepotvrzeném doteku S/R zóny!
+- Vyžaduj potvrditelnou změnu struktury (MSS / BOS / zamítnutí zóny knotem svíčky / engulfing pattern). Pokud změna struktury chybí, vyhodnoť jako **"NO TRADE"**.
 
-**KROK 4: Výpočet Matematického Skóre Konfluence (0-100 bodů)**
-- Makro + VIX prostředí: 0 až 30 bodů
-- Jasná S/R úroveň na vyšším TF: 0 až 30 bodů
-- Čistá struktura na nižším TF (bez pasti) + RRR >= 1:2: 0 až 40 bodů
+**KROK 4: Interní Oponentura (Self-Reflection / Devil's Advocate)**
+- Než dáš finální verdikt, povinně se v roli Risk Managera pokus tento obchod zpochybnit. Vypiš hlavní 2 rizika, proč by tento obchod mohl selhat.
+
+**KROK 5: Výpočet RRR a Skóre Konfluence (0-100 bodů)**
+- Vypočítej RRR = (TP - Vstup) / (Vstup - SL). Pokud je RRR < 1:2 (tj. < 2.0), obchodu vystav stopku (**NO TRADE**).
+- Přiděl body: Makro+DXY+VIX (0-30b), Vyšší TF S/R zóna (0-30b), MSS struktura + RRR >= 1:2 na nižším TF (0-40b).
 *CELKOVÉ SKÓRE KONFLUENCE:* (sečti body)
 
-**PROVOZNÍ PRAVIDLO:** Pokud je celkové skóre NIŽŠÍ NEŽ 80 BODŮ, tvůj finální verdikt MUSÍ BÝT **"NO TRADE"**.
+**PROVOZNÍ PRAVIDLO:** Pokud je celkové skóre NIŽŠÍ NEŽ 80 BODŮ, nebo pokud probíhá aktivní Red-Flag či chybí MSS, tvůj finální verdikt MUSÍ BÝT **"NO TRADE"**.
 
 VÝSTUPNÍ STRUKTURA (Odpověz striktně v češtině v tomto formátu):
 
-1. **Časový & VIX Manažment:** [Zhodnocení času {curr_time}, stavu VIXu a doporučené pauzy po zprávách]
-2. **Detailní myšlenkový postup (Chain-of-Thought):** (Stručný popis analýzy)
-3. **Matematické skóre konfluence:** [X / 100 bodů]
-4. **Finální Verdikt / Směr:** [LONG / SHORT / NEUTRAL / NO TRADE]
-5. **Přesná Vstupní Zóna:** [Cenová hladina]
-6. **Take Profit (TP) + Odhad času:** [Cílová cena + předpokládaný čas v minutách do dosažení TP]
-7. **Podmíněný Stop Loss / Invalidace:** [Přesná hladina + podmínka uzavření svíčky]
-8. **Kalkulace RRR:** [Přesný vypočtený poměr RRR, např. 1:2.4]
-9. **Doporučení pro řízení rizika:** (Doporučený postup pro posun na Breakeven)
+1. **Mezitržní & Časové Zhodnocení (DXY / Yields / VIX / Čas):** [Stručné hodnocení korelací a času]
+2. **Detailní myšlenkový postup (Chain-of-Thought & MSS):** [Popis vyššího TF, struktury MSS a potvrzení]
+3. **Interní Oponentura (Rizika obchodu):** [2 hlavní důvody, proč by trade mohl selhat]
+4. **Matematické skóre konfluence:** [X / 100 bodů]
+5. **Finální Verdikt / Směr:** [LONG / SHORT / NEUTRAL / NO TRADE]
+6. **Přesná Vstupní Zóna:** [Cenová hladina s potvrzením MSS]
+7. **Take Profit (TP) + Odhad času:** [Cílová cena + předpokládaný časový horizont do dosažení TP]
+8. **Podmíněný Stop Loss / Invalidace:** [Přesná hladina + podmínka uzavření svíčky]
+9. **Kalkulace RRR:** [Přesný vypočtený poměr RRR, např. 1:2.5]
+10. **Doporučení pro exekuci & Posun na BE:** (Stručné rady)
 """
 
         # Odeslání požadavku na Gemini
