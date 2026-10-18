@@ -1,3 +1,5 @@
+from datetime import datetime
+import zoneinfo
 import feedparser
 import google.generativeai as genai
 from PIL import Image, ImageEnhance
@@ -5,16 +7,18 @@ import streamlit as st
 
 # Nastavení aplikace
 st.set_page_config(
-    page_title="NQ Daytrading AI Agent - Pro Edition",
+    page_title="NQ quantitative terminal - Institutional Edition",
     page_icon="⚡",
     layout="wide",
 )
 
-st.title("⚡ NQ Daytrading AI Agent (Multi-Timeframe & Konfluenční Pro System)")
+st.title(
+    "⚡ NQ Daytrading AI Agent (Time-Gated, VIX-Aware & RRR Math System)"
+)
 st.markdown(
     "Institucionální analytický systém pro daytrading Nasdaq (NQ) futures."
-    " Kombinuje Multi-Timeframe Price Action, detekci makro rizika a matici"
-    " konfluence."
+    " Kombinuje Multi-Timeframe Price Action, detekci VIXu, časový filtr a"
+    " kalkulaci RRR."
 )
 
 # Postranní panel
@@ -30,22 +34,41 @@ with st.sidebar:
   )
 
 
-# 1. Optimalizace obrázků (Pillow - úprava kontrastu a ostrosti pro AI)
+# 1. Časový filtr (Time-Gating) pro kontrolu obchodních hodin
+def check_trading_window():
+  try:
+    prague_tz = zoneinfo.ZoneInfo("Europe/Prague")
+    now = datetime.now(prague_tz)
+  except Exception:
+    now = datetime.now()
+
+  current_time_str = now.strftime("%H:%M")
+  hour = now.hour
+  minute = now.minute
+
+  # Kontrola americké obědové pauzy (18:00 - 19:30 SEČ)
+  is_lunch_break = (hour == 18) or (hour == 19 and minute < 30)
+
+  # Kontrola hlavního okna (15:30 - 22:00 SEČ)
+  is_main_session = (hour == 15 and minute >= 30) or (16 <= hour < 22)
+
+  return current_time_str, is_lunch_break, is_main_session
+
+
+# 2. Optimalizace obrázků (Pillow - kontrast a ostrost)
 def process_image(image_file):
   img = Image.open(image_file).convert("RGB")
-  # Zvýšení kontrastu pro lepší čitelnost svíček
   enhancer = ImageEnhance.Contrast(img)
   img = enhancer.enhance(1.2)
-  # Zvýšení ostrosti pro text a osy
   sharpness = ImageEnhance.Sharpness(img)
   img = sharpness.enhance(1.3)
   return img
 
 
-# 2. Inteligentní filtr makro zpráv & Red-Flag detekce
+# 3. Inteligentní filtr makro zpráv & VIX & Red-Flag skener
 def fetch_filtered_news():
-  # Hledáme cílená makro data
-  rss_url = "https://news.google.com/rss/search?q=(Nasdaq+OR+NQ+OR+Fed+OR+FOMC+OR+CPI+OR+USD)+when:1d&hl=en-US&gl=US&ceid=US:en"
+  # Hledáme cílená makro data včetně VIXu a úrokových sazeb
+  rss_url = "https://news.google.com/rss/search?q=(Nasdaq+OR+NQ+OR+Fed+OR+FOMC+OR+CPI+OR+USD+OR+VIX)+when:1d&hl=en-US&gl=US&ceid=US:en"
   feed = feedparser.parse(rss_url)
 
   relevant_keywords = [
@@ -59,7 +82,8 @@ def fetch_filtered_news():
       "nasdaq",
       "futures",
       "powell",
-      "treasury",
+      "vix",
+      "volatility",
   ]
   headlines = []
   red_flags = []
@@ -91,13 +115,24 @@ def fetch_filtered_news():
   return news_text, has_red_flag, red_flags
 
 
+# Kontrola času při načtení
+curr_time, is_lunch, is_main = check_trading_window()
+
 # Rozvržení - Vstupy
 col1, col2 = st.columns(2)
 
 with col1:
   st.subheader("1. Živé makro zprávy & Red-Flag Skener")
-  if st.button("🔄 Načíst a přefiltrovat zprávy"):
-    with st.spinner("Skenuji makro události..."):
+  st.caption(f"🕒 Aktuální čas (SEČ): **{curr_time}**")
+
+  if is_lunch:
+    st.warning(
+        "⚠️ **Upozornění:** Právě probíhá americká obědová pauza (18:00 - 19:30"
+        " SEČ). Trh má nízkou likviditu a zvýšené riziko falešných pohybů."
+    )
+
+  if st.button("🔄 Načíst a přefiltrovat zprávy (vč. VIX)"):
+    with st.spinner("Skenuji makro události a VIX..."):
       news, red_flag, rf_list = fetch_filtered_news()
       st.session_state["news"] = news
       st.session_state["red_flag"] = red_flag
@@ -110,7 +145,7 @@ with col1:
           + "\n".join(st.session_state["rf_list"])
       )
     st.text_area(
-        "Filtrované zprávy pro AI:",
+        "Filtrované zprávy a VIX pro AI:",
         st.session_state["news"],
         height=180,
         disabled=True,
@@ -149,8 +184,7 @@ if st.button("🚀 Vyhodnotit Multi-Timeframe Scénář", type="primary"):
     )
   else:
     with st.spinner(
-        "AI provádí hloubkovou Chain-of-Thought analýzu a počítá skóre"
-        " konfluence..."
+        "AI provádí hloubkovou Chain-of-Thought analýzu a výpočet RRR..."
     ):
       try:
         model = genai.GenerativeModel("gemini-3.8-flash")
@@ -166,47 +200,50 @@ if st.button("🚀 Vyhodnotit Multi-Timeframe Scénář", type="primary"):
           images_payload.append(img2)
           img2_status = f"Nahrán ({tf_lower})"
 
-        # Pokročilý prompt s Chain-of-Thought a Bodovacím systémem
+        # Pokročilý prompt s VIXem, Time-Gatingem a Matematikou RRR
         prompt = f"""
 Jsi špičkový institucionální kvantitativní trader a risk manager zaměřený na daytrading Nasdaq (NQ) futures.
-Tvým úkolem je provést nekompromisně přesnou Multi-Timeframe analýzu včetně časového plánu a řízení rizik.
+Tvým úkolem je provést nekompromisně přesnou Multi-Timeframe analýzu s důrazem na matematiku RRR a časové okno.
 
 DODANÉ VSTUPY:
+- **Aktuální čas analýzy (SEČ):** {curr_time}
+- **Status obědové pauzy:** {'ANO (Zvýšené riziko)' if is_lunch else 'NE (Standardní hodiny)'}
 - **Vyšší časový rámec (TF1):** {tf_higher}
 - **Nižší časový rámec (TF2):** {img2_status}
-- **Makro zprávy & Časy vydání:** {st.session_state.get('news')}
+- **Makro zprávy & VIX:** {st.session_state.get('news')}
 - **Red-Flag Varování:** {st.session_state.get('red_flag')}
 
 PROVEDEŠ ANALÝZU KROK ZA KROKEM (CHAIN-OF-THOUGHT):
 
-**KROK 1: Makro Kontext & Výpočet Časové Pauzy (Red-Flag)**
-- Zhodnoť, zda zprávy obsahují časově citlivé události (CPI, FOMC). 
-- Pokud ano, urči z textu přesný čas jejich vydání a vypočti **doporučenou délku pauzy** (např. „Neobchodovat 30–45 minut po zveřejnění do [čas]“).
+**KROK 1: Makro Kontext, VIX & Časové Okno**
+- Vyhodnoť náladu trhu z VIXu a makra. Zhodnoť, zda aktuální čas ({curr_time}) spadá do obědové pauzy nebo před Red-Flag událost.
 
 **KROK 2: Analýza Vyššího TF ({tf_higher}) & Nižšího TF**
-- Urči trend, S/R úrovně a zkontroluj případné fakeouty (sweep likvidity).
+- Urči trend, S/R zóny, Order Blocky a zkontroluj případné fakeouty (falešná proražení pre-market high/low pro vymetení retailu).
 
-**KROK 3: Odhad Časového Horizontu obchodu**
-- Na základě zvoleného timeframe a vzdálenosti k TP odhadni reálný čas, za jaký může cena dojít k Take Profitu (např. „Očekávaný čas do dosažení TP: 45–90 minut“).
+**KROK 3: Výpočet Matematického RRR (Risk-Reward Ratio)**
+- Definuj přesný Vstup, TP a SL. Počítej RRR = (TP - Vstup) / (Vstup - SL).
+- **STRIKTNÍ PRAVIDLO:** Pokud je vyčíslené RRR MENŠÍ NEŽ 1:2 (tj. < 2.0), trade zamítni s verdiktem **NO TRADE**.
 
 **KROK 4: Výpočet Matematického Skóre Konfluence (0-100 bodů)**
-- Podpora makro prostředí: 0 až 30 bodů
-- Jasná S/R úroveň / Order Block na vyšším TF: 0 až 30 bodů
-- Čistá struktura na nižším TF (bez pasti): 0 až 40 bodů
+- Makro + VIX prostředí: 0 až 30 bodů
+- Jasná S/R úroveň na vyšším TF: 0 až 30 bodů
+- Čistá struktura na nižším TF (bez pasti) + RRR >= 1:2: 0 až 40 bodů
 *CELKOVÉ SKÓRE KONFLUENCE:* (sečti body)
 
-**PROVOZNÍ PRAVIDLO:** Pokud je celkové skóre NIŽŠÍ NEŽ 80 BODŮ, nebo pokud probíhá aktivní Red-Flag okno, tvůj finální verdikt MUSÍ BÝT **"NO TRADE"**.
+**PROVOZNÍ PRAVIDLO:** Pokud je celkové skóre NIŽŠÍ NEŽ 80 BODŮ, tvůj finální verdikt MUSÍ BÝT **"NO TRADE"**.
 
 VÝSTUPNÍ STRUKTURA (Odpověz striktně v češtině v tomto formátu):
 
-1. **Časový manažment & Red-Flag pauza:** [Zde uveď, zda se může obchodovat hned, nebo jak dlouho po zprávě držet pauzu]
+1. **Časový & VIX Manažment:** [Zhodnocení času {curr_time}, stavu VIXu a doporučené pauzy po zprávách]
 2. **Detailní myšlenkový postup (Chain-of-Thought):** (Stručný popis analýzy)
 3. **Matematické skóre konfluence:** [X / 100 bodů]
 4. **Finální Verdikt / Směr:** [LONG / SHORT / NEUTRAL / NO TRADE]
 5. **Přesná Vstupní Zóna:** [Cenová hladina]
-6. **Take Profit (TP) + Odhad času:** [Cílová cena + předpokládaný časový horizont do dosažení TP]
+6. **Take Profit (TP) + Odhad času:** [Cílová cena + předpokládaný čas v minutách do dosažení TP]
 7. **Podmíněný Stop Loss / Invalidace:** [Přesná hladina + podmínka uzavření svíčky]
-8. **Doporučení pro exekuci:** (Stručné rady)
+8. **Kalkulace RRR:** [Přesný vypočtený poměr RRR, např. 1:2.4]
+9. **Doporučení pro řízení rizika:** (Doporučený postup pro posun na Breakeven)
 """
 
         # Odeslání požadavku na Gemini
