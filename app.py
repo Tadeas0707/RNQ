@@ -7,18 +7,17 @@ import streamlit as st
 
 # Nastavení aplikace
 st.set_page_config(
-    page_title="NQ Daytrading AI Agent - Quant Edition",
+    page_title="NQ Daytrading AI Agent - Fully Automated Quant Edition",
     page_icon="⚡",
     layout="wide",
 )
 
 st.title(
-    "⚡ NQ Daytrading AI Agent (Quant, MSS, DXY-Yields & Self-Reflection System)"
+    "⚡ NQ Daytrading AI Agent (Fully Automated Vision & Quant System)"
 )
 st.markdown(
     "Institucionální analytický systém pro daytrading Nasdaq (NQ) futures."
-    " Kombinuje Multi-Timeframe Price Action, mezitržní korelace (DXY/US10Y),"
-    " MSS strukturu a dvoufázovou oponenturu."
+    " AI sama odvodí kontext seance, gapy i trend z nahraných grafů."
 )
 
 # Postranní panel
@@ -67,7 +66,6 @@ def process_image(image_file):
 
 # 3. Inteligentní filtr makro zpráv & DXY / US10Y / VIX & Red-Flag skener
 def fetch_filtered_news():
-  # Hledáme cílená makro data včetně DXY, US10Y dluhopisů a VIXu
   rss_url = "https://news.google.com/rss/search?q=(Nasdaq+OR+NQ+OR+Fed+OR+FOMC+OR+CPI+OR+USD+OR+DXY+OR+treasury+yields+OR+VIX)+when:1d&hl=en-US&gl=US&ceid=US:en"
   feed = feedparser.parse(rss_url)
 
@@ -96,7 +94,6 @@ def fetch_filtered_news():
     if any(kw in title_lower for kw in relevant_keywords):
       headlines.append(f"- {entry.title} ({entry.published})")
 
-      # Detekce Red-Flag událostí
       if any(
           rf in title_lower
           for rf in [
@@ -157,15 +154,12 @@ with col1:
     st.info("Klikni na tlačítko pro načtení makro dat.")
 
 with col2:
-  st.subheader("2. Multi-Timeframe Grafy & Session Kontext")
-
-  # Kontext seance
-  is_trending_day = st.checkbox(
-      "Včerejší den byl silně trendový (Trend Continuation)"
+  st.subheader("2. Multi-Timeframe Grafy (Auto-Analysis)")
+  st.caption(
+      "AI automaticky detekuje trend, gapy i strukturu přímo z nahraných"
+      " screenshotů."
   )
-  is_gap_open = st.checkbox("Trh dnes otevřel s výrazným cenovým gapem (Mezera)")
 
-  st.markdown("---")
   tf_higher = st.selectbox(
       "Časový rámec 1. grafu (Vyšší TF):", ["15M", "1H", "4H"], index=0
   )
@@ -184,8 +178,14 @@ with col2:
 
 st.markdown("---")
 
-# Tlačítko pro spuštění vyhodnocení
-if st.button("🚀 Vyhodnotit Multi-Timeframe Scénář", type="primary"):
+# Zabalení odeslání do formuláře k prevenci duplicitních požadavků (ochrana před 429 RPM)
+with st.form("analysis_form"):
+  st.subheader("3. Spuštění analýzy")
+  submit_button = st.form_submit_button(
+      "🚀 Vyhodnotit Multi-Timeframe Scénář", type="primary"
+  )
+
+if submit_button:
   if not api_key:
     st.error("Chybí Google Gemini API klíč v postranním panelu!")
   elif "news" not in st.session_state or img1_file is None:
@@ -195,13 +195,11 @@ if st.button("🚀 Vyhodnotit Multi-Timeframe Scénář", type="primary"):
     )
   else:
     with st.spinner(
-        "AI provádí hloubkovou Chain-of-Thought analýzu, dvoufázovou oponenturu"
-        " a výpočet RRR..."
+        "AI vizuálně analyzuje grafy, provádí Chain-of-Thought a výpočet RRR..."
     ):
       try:
         model = genai.GenerativeModel("gemini-3.8-flash")
 
-        # Zpracování nahrávaných obrázků
         images_payload = []
         img1 = process_image(img1_file)
         images_payload.append(img1)
@@ -212,7 +210,6 @@ if st.button("🚀 Vyhodnotit Multi-Timeframe Scénář", type="primary"):
           images_payload.append(img2)
           img2_status = f"Nahrán ({tf_lower})"
 
-        # Pokročilý prompt s DXY, MSS, Self-Reflection Oponenturou a Kontextem Seance
         prompt = f"""
 Jsi elitní kvantitativní trader a institucionální risk manager zaměřený výhradně na daytrading Nasdaq (NQ) futures.
 Tvým úkolem je provést nemilosrdně přísnou Multi-Timeframe analýzu s využitím mezitržních korelací (DXY/Yields), konceptu MSS (Market Structure Shift) a dvoufázové oponentury.
@@ -220,7 +217,7 @@ Tvým úkolem je provést nemilosrdně přísnou Multi-Timeframe analýzu s vyu�
 DODANÉ VSTUPY:
 - **Aktuální čas analýzy (SEČ):** {curr_time}
 - **Status obědové pauzy:** {'ANO (Zvýšené riziko)' if is_lunch else 'NE (Standardní hodiny)'}
-- **Kontext seance:** {'Včera silný trend | ' if is_trending_day else ''}{'Dnes Gap Open | ' if is_gap_open else 'Standardní otvírací kontext'}
+- **Kontext seance (ODVOĎ AUTOMATICKY Z GRAFU):** Vizuálně zkontroluj nahraný graf (zda trh otevřel s gapem, zda je přítomen silný včerejší trend, nebo probíhá konsolidace).
 - **Vyšší časový rámec (TF1):** {tf_higher}
 - **Nižší časový rámec (TF2):** {img2_status}
 - **Makro zprávy (DXY, Yields, VIX, Fed):** {st.session_state.get('news')}
@@ -231,8 +228,8 @@ PROVEDEŠ ANALÝZU KROK ZA KROKEM (CHAIN-OF-THOUGHT & SELF-REFLECTION):
 **KROK 1: Mezitržní analýza (DXY & US10Y) a VIX**
 - Zhodnoť, zda vývoj na US Dolaru (DXY) nebo výnosech 10letých dluhopisů (US10Y) nepotvrzuje falešné proražení na NQ. Pokud DXY/Yields posilují, buď extrémně opatrný u Longů na NQ.
 
-**KROK 2: Analýza Vyššího TF ({tf_higher}) & Kontext Seance**
-- Urči hlavního hybatele, klíčové S/R úrovně a zohledni, zda včerejší trendový den nebo dnešní Gap nevyžadují navrácení k průměru (Mean Reversion) či pokračování trendu.
+**KROK 2: Vizuální analýza Vyššího TF ({tf_higher}) & Kontext Seance**
+- Automaticky detekuj kontext z grafu (gap open, včerejší trend, akumulace/distribuce) a urči klíčové S/R úrovně.
 
 **KROK 3: Kontrola Market Structure Shift (MSS) na Nižším TF**
 - NEVOLEJ VSTUP při prvním nepotvrzeném doteku S/R zóny!
@@ -251,7 +248,7 @@ PROVEDEŠ ANALÝZU KROK ZA KROKEM (CHAIN-OF-THOUGHT & SELF-REFLECTION):
 VÝSTUPNÍ STRUKTURA (Odpověz striktně v češtině v tomto formátu):
 
 1. **Mezitržní & Časové Zhodnocení (DXY / Yields / VIX / Čas):** [Stručné hodnocení korelací a času]
-2. **Detailní myšlenkový postup (Chain-of-Thought & MSS):** [Popis vyššího TF, struktury MSS a potvrzení]
+2. **Detailní myšlenkový postup (Chain-of-Thought & MSS):** [Popis vyššího TF, vizuálně detekovaného kontextu a struktury MSS]
 3. **Interní Oponentura (Rizika obchodu):** [2 hlavní důvody, proč by trade mohl selhat]
 4. **Matematické skóre konfluence:** [X / 100 bodů]
 5. **Finální Verdikt / Směr:** [LONG / SHORT / NEUTRAL / NO TRADE]
@@ -262,7 +259,6 @@ VÝSTUPNÍ STRUKTURA (Odpověz striktně v češtině v tomto formátu):
 10. **Doporučení pro exekuci & Posun na BE:** (Stručné rady)
 """
 
-        # Odeslání požadavku na Gemini
         response = model.generate_content([prompt] + images_payload)
 
         st.success("Analýza byla úspěšně vygenerována!")
