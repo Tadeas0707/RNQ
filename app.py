@@ -7,17 +7,16 @@ import streamlit as st
 
 # Nastavení aplikace
 st.set_page_config(
-    page_title="NQ Daytrading AI Agent - Fully Automated Quant Edition",
+    page_title="NQ Daytrading AI Agent - Funded Account Edition",
     page_icon="⚡",
     layout="wide",
 )
 
-st.title(
-    "⚡ NQ Daytrading AI Agent (Fully Automated Vision & Quant System)"
-)
+st.title("⚡ NQ Daytrading AI Agent (Funded Account / Prop Trading Mode)")
 st.markdown(
-    "Institucionální analytický systém pro daytrading Nasdaq (NQ) futures."
-    " AI sama odvodí kontext seance, gapy i trend z nahraných grafů."
+    "Institucionální analytický systém optimalizovaný pro ochranu funded účtu."
+    " Vyvážená detekce příležitostí, přísný risk management a jasný finální"
+    " verdikt."
 )
 
 # Postranní panel
@@ -28,8 +27,8 @@ with st.sidebar:
     genai.configure(api_key=api_key)
   st.markdown("---")
   st.info(
-      "💡 Pro maximální úspěšnost prováděj analýzu v 15:30 SEČ nebo při"
-      " testu klíčové S/R zóny."
+      "💡 Pro funded účty: Hledáme bezpečné, menší asymetrické obchody s přísnou"
+      " ochranou capitalu."
   )
 
 
@@ -48,10 +47,7 @@ def check_trading_window():
   # Kontrola americké obědové pauzy (18:00 - 19:30 SEČ)
   is_lunch_break = (hour == 18) or (hour == 19 and minute < 30)
 
-  # Kontrola hlavního okna (15:30 - 22:00 SEČ)
-  is_main_session = (hour == 15 and minute >= 30) or (16 <= hour < 22)
-
-  return current_time_str, is_lunch_break, is_main_session
+  return current_time_str, is_lunch_break
 
 
 # 2. Optimalizace obrázků (Pillow - kontrast a ostrost)
@@ -116,7 +112,7 @@ def fetch_filtered_news():
 
 
 # Kontrola času při načtení
-curr_time, is_lunch, is_main = check_trading_window()
+curr_time, is_lunch = check_trading_window()
 
 # Rozvržení - Vstupy
 col1, col2 = st.columns(2)
@@ -154,10 +150,10 @@ with col1:
     st.info("Klikni na tlačítko pro načtení makro dat.")
 
 with col2:
-  st.subheader("2. Multi-Timeframe Grafy (Auto-Analysis)")
+  st.subheader("2. Multi-Timeframe Grafy (Funded Mode)")
   st.caption(
-      "AI automaticky detekuje trend, gapy i strukturu přímo z nahraných"
-      " screenshotů."
+      "AI automaticky vyhodnotí bezpečné příležitosti a chytá menší, čisté"
+      " obchody pro ochranu účtu."
   )
 
   tf_higher = st.selectbox(
@@ -180,7 +176,7 @@ st.markdown("---")
 
 # Zabalení odeslání do formuláře k prevenci duplicitních požadavků (ochrana před 429 RPM)
 with st.form("analysis_form"):
-  st.subheader("3. Spuštění analýzy")
+  st.subheader("3. Spuštění Funded Analýzy")
   submit_button = st.form_submit_button(
       "🚀 Vyhodnotit Multi-Timeframe Scénář", type="primary"
   )
@@ -195,7 +191,7 @@ if submit_button:
     )
   else:
     with st.spinner(
-        "AI vizuálně analyzuje grafy, provádí Chain-of-Thought a výpočet RRR..."
+        "AI provádí analýzu optimalizovanou pro Funded účet..."
     ):
       try:
         model = genai.GenerativeModel("gemini-3.8-flash")
@@ -211,52 +207,42 @@ if submit_button:
           img2_status = f"Nahrán ({tf_lower})"
 
         prompt = f"""
-Jsi elitní kvantitativní trader a institucionální risk manager zaměřený výhradně na daytrading Nasdaq (NQ) futures.
-Tvým úkolem je provést nemilosrdně přísnou Multi-Timeframe analýzu s využitím mezitržních korelací (DXY/Yields), konceptu MSS (Market Structure Shift) a dvoufázové oponentury.
+Jsi špičkový kvantitativní risk manager pro Funded Trading účty (např. Apex/Topstep). Tvým úkolem je chránit kapitál, ale zároveň umožnit realizovat čisté, bezpečné a realistické obchody (i menší, s rychlým ziskem), pokud má trh aspoň základní strukturu. Neházej "NO TRADE" zbytečně, pokud je na grafu srozumitelná příležitost.
 
 DODANÉ VSTUPY:
 - **Aktuální čas analýzy (SEČ):** {curr_time}
 - **Status obědové pauzy:** {'ANO (Zvýšené riziko)' if is_lunch else 'NE (Standardní hodiny)'}
-- **Kontext seance (ODVOĎ AUTOMATICKY Z GRAFU):** Vizuálně zkontroluj nahraný graf (zda trh otevřel s gapem, zda je přítomen silný včerejší trend, nebo probíhá konsolidace).
+- **Kontext seance (ODVOĎ AUTOMATICKY Z GRAFU):** Vizuálně zkontroluj nahraný graf.
 - **Vyšší časový rámec (TF1):** {tf_higher}
 - **Nižší časový rámec (TF2):** {img2_status}
 - **Makro zprávy (DXY, Yields, VIX, Fed):** {st.session_state.get('news')}
 - **Red-Flag Varování:** {st.session_state.get('red_flag')}
 
-PROVEDEŠ ANALÝZU KROK ZA KROKEM (CHAIN-OF-THOUGHT & SELF-REFLECTION):
+PROVEDEŠ ANALÝZU KROK ZA KROKEM:
 
 **KROK 1: Mezitržní analýza (DXY & US10Y) a VIX**
-- Zhodnoť, zda vývoj na US Dolaru (DXY) nebo výnosech 10letých dluhopisů (US10Y) nepotvrzuje falešné proražení na NQ. Pokud DXY/Yields posilují, buď extrémně opatrný u Longů na NQ.
+- Zhodnoť makro pozadí. Hledáme prostředí, které nezabíjí menší intradenní pohyby.
 
-**KROK 2: Vizuální analýza Vyššího TF ({tf_higher}) & Kontext Seance**
-- Automaticky detekuj kontext z grafu (gap open, včerejší trend, akumulace/distribuce) a urči klíčové S/R úrovně.
+**KROK 2: Vizuální analýza Vyššího TF ({tf_higher}) & Struktura**
+- Urči klíčové S/R úrovně, odkud může proběhnout čistý odraz nebo pokračování.
 
 **KROK 3: Kontrola Market Structure Shift (MSS) na Nižším TF**
-- NEVOLEJ VSTUP při prvním nepotvrzeném doteku S/R zóny!
-- Vyžaduj potvrditelnou změnu struktury (MSS / BOS / zamítnutí zóny knotem svíčky / engulfing pattern). Pokud změna struktury chybí, vyhodnoť jako **"NO TRADE"**.
+- Hledej lokální potvrzení vstupu (odmítnutí zóny, svíčkový vzor).
 
-**KROK 4: Interní Oponentura (Self-Reflection / Devil's Advocate)**
-- Než dáš finální verdikt, povinně se v roli Risk Managera pokus tento obchod zpochybnit. Vypiš hlavní 2 rizika, proč by tento obchod mohl selhat.
-
-**KROK 5: Výpočet RRR a Skóre Konfluence (0-100 bodů)**
-- Vypočítej RRR = (TP - Vstup) / (Vstup - SL). Pokud je RRR < 1:2 (tj. < 2.0), obchodu vystav stopku (**NO TRADE**).
-- Přiděl body: Makro+DXY+VIX (0-30b), Vyšší TF S/R zóna (0-30b), MSS struktura + RRR >= 1:2 na nižším TF (0-40b).
-*CELKOVÉ SKÓRE KONFLUENCE:* (sečti body)
-
-**PROVOZNÍ PRAVIDLO:** Pokud je celkové skóre NIŽŠÍ NEŽ 80 BODŮ, nebo pokud probíhá aktivní Red-Flag či chybí MSS, tvůj finální verdikt MUSÍ BÝT **"NO TRADE"**.
+**KROK 4: Výpočet RRR a Skóre Konfluence (0-100 bodů)**
+- Pro Funded účet stačí pro menší bezpečné obchody skóre **nad 65 bodů** (místo původních 80), pokud je RRR alespoň 1:1.5 nebo 1:2. Verdikt "NO TRADE" dávej jen v případě extrémního chaosu nebo probíhajících Red-Flag zpráv.
 
 VÝSTUPNÍ STRUKTURA (Odpověz striktně v češtině v tomto formátu):
 
-1. **Mezitržní & Časové Zhodnocení (DXY / Yields / VIX / Čas):** [Stručné hodnocení korelací a času]
-2. **Detailní myšlenkový postup (Chain-of-Thought & MSS):** [Popis vyššího TF, vizuálně detekovaného kontextu a struktury MSS]
-3. **Interní Oponentura (Rizika obchodu):** [2 hlavní důvody, proč by trade mohl selhat]
-4. **Matematické skóre konfluence:** [X / 100 bodů]
-5. **Finální Verdikt / Směr:** [LONG / SHORT / NEUTRAL / NO TRADE]
-6. **Přesná Vstupní Zóna:** [Cenová hladina s potvrzením MSS]
-7. **Take Profit (TP) + Odhad času:** [Cílová cena + předpokládaný časový horizont do dosažení TP]
-8. **Podmíněný Stop Loss / Invalidace:** [Přesná hladina + podmínka uzavření svíčky]
-9. **Kalkulace RRR:** [Přesný vypočtený poměr RRR, např. 1:2.5]
-10. **Doporučení pro exekuci & Posun na BE:** (Stručné rady)
+1. **Mezitržní & Časové Zhodnocení:** [Stručné hodnocení korelací a času]
+2. **Detailní myšlenkový postup:** [Popis vyššího TF a struktury]
+3. **Matematické skóre konfluence:** [X / 100 bodů]
+4. **Finální Verdikt / Směr:** [LONG / SHORT / NO TRADE]
+5. **Přesná Vstupní Zóna:** [Cenová hladina]
+6. **Take Profit (TP):** [Cílová cena]
+7. **Stop Loss (SL):** [Přesná hladina invalidace]
+8. **Kalkulace RRR:** [Např. 1:1.8 nebo 1:2.2]
+9. **FUNDED TRADING SHRNUTÍ (JASNÝ VERDIKT):** [Napiš sem jedním jasným, tučným řádkem, zda se jedná o "OBCHODOVATELNÝ DEN (BEREME [LONG/SHORT])" nebo "NO TRADE DAY", a přidej rychlý pokyn ve tvaru: Vstup na [Cena] | SL: [Cena] | TP: [Cena]].
 """
 
         response = model.generate_content([prompt] + images_payload)
