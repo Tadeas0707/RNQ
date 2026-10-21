@@ -7,16 +7,16 @@ import streamlit as st
 
 # Nastavení aplikace
 st.set_page_config(
-    page_title="NQ Daytrading AI Agent - Funded Account Edition",
+    page_title="NQ Daytrading AI Agent - Funded Ultimate Safety",
     page_icon="⚡",
     layout="wide",
 )
 
-st.title("⚡ NQ Daytrading AI Agent (Funded Account / Prop Trading Mode)")
+st.title("⚡ NQ Daytrading AI Agent (Funded Safety & Any-Session Mode)")
 st.markdown(
     "Institucionální analytický systém optimalizovaný pro ochranu funded účtu."
-    " Vyvážená detekce příležitostí, přísný risk management a jasný finální"
-    " verdikt."
+    " Vyhledává bezpečné vstupy napříč celou seancí mimo nebezpečné otvírací"
+    " zóny."
 )
 
 # Postranní panel
@@ -27,12 +27,12 @@ with st.sidebar:
     genai.configure(api_key=api_key)
   st.markdown("---")
   st.info(
-      "💡 Pro funded účty: Hledáme bezpečné, menší asymetrické obchody s přísnou"
-      " ochranou capitalu."
+      "💡 Systém vyhledává obchody v jakémkoliv poklidném časovém okně s"
+      " důrazem na retest a ochranu před Stop Hunjem."
   )
 
 
-# 1. Časový filtr (Time-Gating) pro kontrolu obchodních hodin
+# 1. Časový filtr pro kontrolu obchodních hodin a otvíracího okna
 def check_trading_window():
   try:
     prague_tz = zoneinfo.ZoneInfo("Europe/Prague")
@@ -44,10 +44,13 @@ def check_trading_window():
   hour = now.hour
   minute = now.minute
 
+  # Kontrola otvíracího okna (15:30 - 15:45 SEČ)
+  is_opening_window = hour == 15 and 30 <= minute <= 45
+
   # Kontrola americké obědové pauzy (18:00 - 19:30 SEČ)
   is_lunch_break = (hour == 18) or (hour == 19 and minute < 30)
 
-  return current_time_str, is_lunch_break
+  return current_time_str, is_opening_window, is_lunch_break
 
 
 # 2. Optimalizace obrázků (Pillow - kontrast a ostrost)
@@ -112,7 +115,7 @@ def fetch_filtered_news():
 
 
 # Kontrola času při načtení
-curr_time, is_lunch = check_trading_window()
+curr_time, is_open_win, is_lunch = check_trading_window()
 
 # Rozvržení - Vstupy
 col1, col2 = st.columns(2)
@@ -121,10 +124,16 @@ with col1:
   st.subheader("1. Živé makro zprávy (DXY, US10Y, VIX) & Red-Flag")
   st.caption(f"🕒 Aktuální čas (SEČ): **{curr_time}**")
 
+  if is_open_win:
+    st.warning(
+        "⚠️ **Upozornění:** Právě probíhá divoké otvírací okno (15:30 - 15:45"
+        " SEČ). Vysoké riziko falešných průrazů a lovu Stop Lossů!"
+    )
+
   if is_lunch:
     st.warning(
         "⚠️ **Upozornění:** Právě probíhá americká obědová pauza (18:00 - 19:30"
-        " SEČ). Trh má nízkou likviditu a zvýšené riziko falešných pohybů."
+        " SEČ). Nízká likvidita."
     )
 
   if st.button("🔄 Načíst a přefiltrovat zprávy (vč. DXY, Výnosů & VIX)"):
@@ -150,10 +159,10 @@ with col1:
     st.info("Klikni na tlačítko pro načtení makro dat.")
 
 with col2:
-  st.subheader("2. Multi-Timeframe Grafy (Funded Mode)")
+  st.subheader("2. Multi-Timeframe Grafy (Any-Session Safety Mode)")
   st.caption(
-      "AI automaticky vyhodnotí bezpečné příležitosti a chytá menší, čisté"
-      " obchody pro ochranu účtu."
+      "AI vyhledá příležitost v jakékoliv fázi dne (mimo nebezpečný Open) s"
+      " důrazem na retest a ochranu účtu."
   )
 
   tf_higher = st.selectbox(
@@ -174,7 +183,7 @@ with col2:
 
 st.markdown("---")
 
-# Zabalení odeslání do formuláře k prevenci duplicitních požadavků (ochrana před 429 RPM)
+# Zabalení odeslání do formuláře
 with st.form("analysis_form"):
   st.subheader("3. Spuštění Funded Analýzy")
   submit_button = st.form_submit_button(
@@ -190,9 +199,7 @@ if submit_button:
         " analýzu!"
     )
   else:
-    with st.spinner(
-        "AI provádí analýzu optimalizovanou pro Funded účet..."
-    ):
+    with st.spinner("AI provádí analýzu v režimu ochrany Funded účtu..."):
       try:
         model = genai.GenerativeModel("gemini-3.8-flash")
 
@@ -207,42 +214,27 @@ if submit_button:
           img2_status = f"Nahrán ({tf_lower})"
 
         prompt = f"""
-Jsi špičkový kvantitativní risk manager pro Funded Trading účty (např. Apex/Topstep). Tvým úkolem je chránit kapitál, ale zároveň umožnit realizovat čisté, bezpečné a realistické obchody (i menší, s rychlým ziskem), pokud má trh aspoň základní strukturu. Neházej "NO TRADE" zbytečně, pokud je na grafu srozumitelná příležitost.
+Jsi nekompromisní šéf-risk manager pro Funded Tradery (Apex/Topstep). Klient má posledních pár pokusů a tvým jediným úkolem je OCHRANA KAPITÁLU, ale zároveň schopnost Najít čistý obchod V JAKÉMKOLIV ČASOVÉM OKNĚ DNE, pokud je trh po otvíracím výplachu a v klidné strukturální fázi.
 
-DODANÉ VSTUPY:
-- **Aktuální čas analýzy (SEČ):** {curr_time}
-- **Status obědové pauzy:** {'ANO (Zvýšené riziko)' if is_lunch else 'NE (Standardní hodiny)'}
-- **Kontext seance (ODVOĎ AUTOMATICKY Z GRAFU):** Vizuálně zkontroluj nahraný graf.
-- **Vyšší časový rámec (TF1):** {tf_higher}
-- **Nižší časový rámec (TF2):** {img2_status}
-- **Makro zprávy (DXY, Yields, VIX, Fed):** {st.session_state.get('news')}
-- **Red-Flag Varování:** {st.session_state.get('red_flag')}
+PŘÍSNÁ BEZPEČNOSTNÍ PRAVIDLA PRO VYHODNOCENÍ:
+1. **Filtrování nebezpečných oken (Opening & Red-Flags):** 
+   - Pokud je čas mezi 15:30 a 15:45 SEČ (otvírací manipulace) nebo probíhá aktivní vyhlášení Red-Flag zprávy, povinně vydej **NO TRADE**.
+   - Mimo toto okno (např. 16:00, 17:00, 20:00 SEČ) aktivně vyhledávej čisté příležitosti v jakékoliv fázi seance.
+2. **Pravidlo Retestu (Anti-Sweep):** Nikdy nevolej vstup na první dotek S/R zóny. Vstup plánuj až PO proběhlém vybrání likvidity (Liquidity Sweep) a následném potvrzeném retestu (zavření svíčky s knotem/engulfing).
+3. **Bezpečnostní polštář pro Stop Loss:** Stop Loss umísti s polštářem dál za očividné knoty svíček, aby ho instituce nemohly snadno vyhmátnout.
+4. **Minimální skóre konfluence 85 bodů:** Pokud je trh nečitelný, vydat **NO TRADE**. Pokud je struktura jasná a retest potvrdil směr, schval obchod.
 
-PROVEDEŠ ANALÝZU KROK ZA KROKEM:
+VÝSTUPNÍ STRUKTURA (Odpověz striktně v češtině):
 
-**KROK 1: Mezitržní analýza (DXY & US10Y) a VIX**
-- Zhodnoť makro pozadí. Hledáme prostředí, které nezabíjí menší intradenní pohyby.
-
-**KROK 2: Vizuální analýza Vyššího TF ({tf_higher}) & Struktura**
-- Urči klíčové S/R úrovně, odkud může proběhnout čistý odraz nebo pokračování.
-
-**KROK 3: Kontrola Market Structure Shift (MSS) na Nižším TF**
-- Hledej lokální potvrzení vstupu (odmítnutí zóny, svíčkový vzor).
-
-**KROK 4: Výpočet RRR a Skóre Konfluence (0-100 bodů)**
-- Pro Funded účet stačí pro menší bezpečné obchody skóre **nad 65 bodů** (místo původních 80), pokud je RRR alespoň 1:1.5 nebo 1:2. Verdikt "NO TRADE" dávej jen v případě extrémního chaosu nebo probíhajících Red-Flag zpráv.
-
-VÝSTUPNÍ STRUKTURA (Odpověz striktně v češtině v tomto formátu):
-
-1. **Mezitržní & Časové Zhodnocení:** [Stručné hodnocení korelací a času]
-2. **Detailní myšlenkový postup:** [Popis vyššího TF a struktury]
+1. **Bezpečnostní audit časového okna:** [Zhodnocení, zda aktuální čas a makro poskytují bezpečné prostředí pro obchod]
+2. **Analýza struktury a retestu:** [Kde proběhl Liquidity Sweep a jak vypadá potvrzený retest]
 3. **Matematické skóre konfluence:** [X / 100 bodů]
 4. **Finální Verdikt / Směr:** [LONG / SHORT / NO TRADE]
-5. **Přesná Vstupní Zóna:** [Cenová hladina]
+5. **Přesná Vstupní Zóna (Až po retestu):** [Cenová hladina]
 6. **Take Profit (TP):** [Cílová cena]
-7. **Stop Loss (SL):** [Přesná hladina invalidace]
-8. **Kalkulace RRR:** [Např. 1:1.8 nebo 1:2.2]
-9. **FUNDED TRADING SHRNUTÍ (JASNÝ VERDIKT):** [Napiš sem jedním jasným, tučným řádkem, zda se jedná o "OBCHODOVATELNÝ DEN (BEREME [LONG/SHORT])" nebo "NO TRADE DAY", a přidej rychlý pokyn ve tvaru: Vstup na [Cena] | SL: [Cena] | TP: [Cena]].
+7. **Stop Loss (S bezpečnostním polštářem):** [Hladina ukrytá pod/nad likviditou]
+8. **Kalkulace RRR:** [Minimálně 1:2]
+9. **FUNDED TRADING SHRNUTÍ:** [Tučně: VERDIKT + Vstup | SL | TP]
 """
 
         response = model.generate_content([prompt] + images_payload)
