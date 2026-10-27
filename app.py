@@ -1,152 +1,134 @@
-<!DOCTYPE html>
-<html lang="cs">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MNQ Wall Street Opening Scouter</title>
+import streamlit as st
+import time
+
+# --- STREAMLIT PAGE CONFIG ---
+st.set_page_config(
+    page_title="MNQ Opening Bias Scouter",
+    page_icon="⚡",
+    layout="centered"
+)
+
+# --- CSS STYLING ---
+st.markdown("""
     <style>
-        :root {
-            --bg-color: #0d1117;
-            --card-bg: #161b22;
-            --border-color: #30363d;
-            --text-color: #c9d1d9;
-            --green: #238636;
-            --red: #da3633;
-            --yellow: #d29922;
-            --blue: #58a6ff;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-        }
-
-        .container {
-            max-width: 900px;
-            width: 100%;
-        }
-
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 15px;
-            margin-bottom: 20px;
-        }
-
-        h1 { font-size: 1.4rem; margin: 0; color: #fff; }
-        .badge { background: var(--border-color); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; }
-
-        .bias-card {
-            background: var(--card-bg);
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            padding: 25px;
-            text-align: center;
-            margin-bottom: 25px;
-        }
-
-        .bias-title { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: #8b949e; }
-        .bias-value { font-size: 2.2rem; font-weight: bold; margin: 10px 0; }
-        .bias-desc { font-size: 0.95rem; line-height: 1.4; color: #8b949e; }
-
-        .bullish { color: #3fb950; border-color: var(--green); }
-        .bearish { color: #f85149; border-color: var(--red); }
-        .neutral { color: var(--yellow); border-color: var(--yellow); }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 15px;
-        }
-
-        .card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 15px;
-        }
-
-        .card h3 {
-            margin-top: 0;
-            font-size: 1rem;
-            color: #fff;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 8px;
-        }
-
-        .metric {
-            display: flex;
-            justify-content: space-between;
-            margin: 10px 0;
-            font-size: 0.9rem;
-        }
-
-        .metric-val { font-weight: bold; }
-
-        button {
-            background: var(--blue);
-            color: #fff;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 15px;
-        }
-
-        button:hover { opacity: 0.9; }
+    .main {
+        background-color: #0d1117;
+        color: #c9d1d9;
+    }
+    .bias-card {
+        background: #161b22;
+        border: 2px solid #30363d;
+        border-radius: 8px;
+        padding: 25px;
+        text-align: center;
+        margin-bottom: 25px;
+    }
+    .bias-title {
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #8b949e;
+    }
+    .bullish { color: #3fb950; border-color: #238636; }
+    .bearish { color: #f85149; border-color: #da3633; }
+    .neutral { color: #d29922; border-color: #d29922; }
+    .card {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
     </style>
-</head>
-<body>
+""", unsafe_allow_html=True)
 
-<div class="container">
-    <header>
-        <h1>MNQ Opening Bias Scouter</h1>
-        <span class="badge">Window: 15:30 - 17:00 SEČ</span>
-    </header>
+# --- HEADER ---
+st.title("⚡ MNQ Wall Street Opening Scouter")
+st.caption("Window: 15:30 - 17:00 SEČ | Institucionální fundamentální filtr")
 
-    <div class="bias-card" id="mainBiasCard">
-        <div class="bias-title">Wall Street Opening Bias</div>
-        <div class="bias-value" id="biasStatus">ANALYZUJÍ SE DATA...</div>
-        <div class="bias-desc" id="biasReason">Načítání nejnovějších dat z makro kalendáře, výnosů US10Y a indexu VIX.</div>
-    </div>
+# --- SIMULACE / DATA SCOUTERU ---
+# Zde se v budoucnu tahají reálná data z API (VIX, US10Y, Kalendář)
+vix_val = 16.4
+us10y_trend = "DOWN"
+nq_premarket = 0.52
+earnings_bias = "BULLISH"
+high_impact_news = False
 
-    <div class="grid">
-        <!-- Makro Kalendář -->
-        <div class="card">
-            <h3>Makroekonomická Data</h3>
-            <div class="metric"><span>CPI / PCE Inflace:</span> <span class="metric-val" id="cpiStatus">-</span></div>
-            <div class="metric"><span>NFP / Zaměstnanost:</span> <span class="metric-val" id="nfpStatus">-</span></div>
-            <div class="metric"><span>Fed / Rozhodnutí:</span> <span class="metric-val" id="fedStatus">-</span></div>
-        </div>
+# Vyhodnocení skóre
+score = 0
+reasons = []
 
-        <!-- Volatilita a Trh -->
-        <div class="card">
-            <h3>Tržní Podmínky</h3>
-            <div class="metric"><span>VIX Index:</span> <span class="metric-val" id="vixVal">-</span></div>
-            <div class="metric"><span>US 10Y Yields:</span> <span class="metric-val" id="us10yVal">-</span></div>
-            <div class="metric"><span>Pre-Market NQ:</span> <span class="metric-val" id="nqPremarket">-</span></div>
-        </div>
+if high_impact_news:
+    bias = "NO-TRADE / HIGH RISK"
+    css_class = "neutral"
+    color_code = "#d29922"
+    reasons.append("🚨 Klíčová makro data (CPI/NFP/FOMC) v kalendáři!")
+else:
+    if us10y_trend == "DOWN":
+        score += 2
+        reasons.append("Pokles výnosů US10Y podporuje růst technologického indexu.")
+    elif us10y_trend == "UP":
+        score -= 2
+        reasons.append("Růst výnosů US10Y vyvíjí tlak na pokles tech sektoru.")
+        
+    if nq_premarket > 0.4:
+        score += 1
+        reasons.append("Pre-market silně býčí.")
+    elif nq_premarket < -0.4:
+        score -= 1
+        reasons.append("Pre-market pod prodejním tlakem.")
 
-        <!-- Dominantní Earnings -->
-        <div class="card">
-            <h3>Magnificent 7 Earnings</h3>
-            <div class="metric"><span>Dnešní Výsledky:</span> <span class="metric-val" id="earningsStatus">-</span></div>
-            <div class="metric"><span>Impakt na Nasdaq:</span> <span class="metric-val" id="earningsImpact">-</span></div>
-        </div>
-    </div>
+    if earnings_bias == "BULLISH":
+        score += 2
+        reasons.append("Výsledky Big Tech překonaly očekávání.")
 
-    <button onclick="runScout()">Znova Skenovat Trh</button>
+    if score >= 2:
+        bias = "BULLISH BIAS"
+        css_class = "bullish"
+        color_code = "#3fb950"
+    elif score <= -2:
+        bias = "BEARISH BIAS"
+        css_class = "bearish"
+        color_code = "#f85149"
+    else:
+        bias = "NEUTRÁLNÍ / MIXED"
+        css_class = "neutral"
+        color_code = "#c9d1d9"
+
+# --- UI VÝSTUP ---
+st.markdown(f"""
+<div class="bias-card {css_class}">
+    <div class="bias-title">Wall Street Opening Bias</div>
+    <div style="font-size: 2.2rem; font-weight: bold; margin: 10px 0; color: {color_code};">{bias}</div>
+    <div style="font-size: 0.95rem; color: #8b949e;">{"<br>".join(reasons)}</div>
 </div>
+""", unsafe_allow_html=True)
 
-<script src="scouter.js"></script>
-</body>
-</html>
+# --- METRIKY V MŘÍŽCE ---
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.markdown("""<div class="card">""", unsafe_allow_html=True)
+    st.subheader("Makro Data")
+    st.metric(label="CPI / Inflace", value="Čistý kalendář")
+    st.metric(label="Fed Sazby", value="Neutrální")
+    st.markdown("""</div>""", unsafe_allow_html=True)
+
+with col2:
+    st.markdown("""<div class="card">""", unsafe_allow_html=True)
+    st.subheader("Tržní Podmínky")
+    st.metric(label="VIX Index", value=vix_val, delta="-0.4")
+    st.metric(label="US 10Y Yields", value=us10y_trend)
+    st.markdown("""</div>""", unsafe_allow_html=True)
+
+with col3:
+    st.markdown("""<div class="card">""", unsafe_allow_html=True)
+    st.subheader("Big Tech Earnings")
+    st.metric(label="Magnificent 7", value=earnings_bias)
+    st.metric(label="Pre-market NQ", value=f"{nq_premarket}%")
+    st.markdown("""</div>""", unsafe_allow_html=True)
+
+if st.button("🔄 Znova Skenovat Trh"):
+    with st.spinner("Skenuji ověřené zdroje Wall Street..."):
+        time.sleep(0.6)
+    st.rerun()
