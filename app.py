@@ -1,246 +1,152 @@
-from datetime import datetime
-import zoneinfo
-import feedparser
-import google.generativeai as genai
-from PIL import Image, ImageEnhance
-import streamlit as st
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MNQ Wall Street Opening Scouter</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --border-color: #30363d;
+            --text-color: #c9d1d9;
+            --green: #238636;
+            --red: #da3633;
+            --yellow: #d29922;
+            --blue: #58a6ff;
+        }
 
-# Nastavení aplikace
-st.set_page_config(
-    page_title="NQ Daytrading AI Agent - Funded Ultimate Safety",
-    page_icon="⚡",
-    layout="wide",
-)
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
 
-st.title("⚡ NQ Daytrading AI Agent (Funded Safety & Any-Session Mode)")
-st.markdown(
-    "Institucionální analytický systém optimalizovaný pro ochranu funded účtu."
-    " Vyhledává bezpečné vstupy napříč celou seancí mimo nebezpečné otvírací"
-    " zóny."
-)
+        .container {
+            max-width: 900px;
+            width: 100%;
+        }
 
-# Postranní panel
-with st.sidebar:
-  st.header("Konfigurace")
-  api_key = st.text_input("Zadej Google Gemini API Key", type="password")
-  if api_key:
-    genai.configure(api_key=api_key)
-  st.markdown("---")
-  st.info(
-      "💡 Systém vyhledává obchody v jakémkoliv poklidném časovém okně s"
-      " důrazem na retest a ochranu před Stop Hunjem."
-  )
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
 
+        h1 { font-size: 1.4rem; margin: 0; color: #fff; }
+        .badge { background: var(--border-color); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; }
 
-# 1. Časový filtr pro kontrolu obchodních hodin a otvíracího okna
-def check_trading_window():
-  try:
-    prague_tz = zoneinfo.ZoneInfo("Europe/Prague")
-    now = datetime.now(prague_tz)
-  except Exception:
-    now = datetime.now()
+        .bias-card {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 25px;
+            text-align: center;
+            margin-bottom: 25px;
+        }
 
-  current_time_str = now.strftime("%H:%M")
-  hour = now.hour
-  minute = now.minute
+        .bias-title { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: #8b949e; }
+        .bias-value { font-size: 2.2rem; font-weight: bold; margin: 10px 0; }
+        .bias-desc { font-size: 0.95rem; line-height: 1.4; color: #8b949e; }
 
-  # Kontrola otvíracího okna (15:30 - 15:45 SEČ)
-  is_opening_window = hour == 15 and 30 <= minute <= 45
+        .bullish { color: #3fb950; border-color: var(--green); }
+        .bearish { color: #f85149; border-color: var(--red); }
+        .neutral { color: var(--yellow); border-color: var(--yellow); }
 
-  # Kontrola americké obědové pauzy (18:00 - 19:30 SEČ)
-  is_lunch_break = (hour == 18) or (hour == 19 and minute < 30)
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 15px;
+        }
 
-  return current_time_str, is_opening_window, is_lunch_break
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 15px;
+        }
 
+        .card h3 {
+            margin-top: 0;
+            font-size: 1rem;
+            color: #fff;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+        }
 
-# 2. Optimalizace obrázků (Pillow - kontrast a ostrost)
-def process_image(image_file):
-  img = Image.open(image_file).convert("RGB")
-  enhancer = ImageEnhance.Contrast(img)
-  img = enhancer.enhance(1.2)
-  sharpness = ImageEnhance.Sharpness(img)
-  img = sharpness.enhance(1.3)
-  return img
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            font-size: 0.9rem;
+        }
 
+        .metric-val { font-weight: bold; }
 
-# 3. Inteligentní filtr makro zpráv & DXY / US10Y / VIX & Red-Flag skener
-def fetch_filtered_news():
-  rss_url = "https://news.google.com/rss/search?q=(Nasdaq+OR+NQ+OR+Fed+OR+FOMC+OR+CPI+OR+USD+OR+DXY+OR+treasury+yields+OR+VIX)+when:1d&hl=en-US&gl=US&ceid=US:en"
-  feed = feedparser.parse(rss_url)
+        button {
+            background: var(--blue);
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 15px;
+        }
 
-  relevant_keywords = [
-      "fomc",
-      "cpi",
-      "fed",
-      "rates",
-      "inflation",
-      "nfp",
-      "payrolls",
-      "nasdaq",
-      "futures",
-      "powell",
-      "vix",
-      "dxy",
-      "dollar",
-      "yields",
-      "treasury",
-  ]
-  headlines = []
-  red_flags = []
+        button:hover { opacity: 0.9; }
+    </style>
+</head>
+<body>
 
-  for entry in feed.entries[:15]:
-    title_lower = entry.title.lower()
-    if any(kw in title_lower for kw in relevant_keywords):
-      headlines.append(f"- {entry.title} ({entry.published})")
+<div class="container">
+    <header>
+        <h1>MNQ Opening Bias Scouter</h1>
+        <span class="badge">Window: 15:30 - 17:00 SEČ</span>
+    </header>
 
-      if any(
-          rf in title_lower
-          for rf in [
-              "cpi",
-              "fomc rate decision",
-              "non-farm payrolls",
-              "powell speaks",
-          ]
-      ):
-        red_flags.append(entry.title)
+    <div class="bias-card" id="mainBiasCard">
+        <div class="bias-title">Wall Street Opening Bias</div>
+        <div class="bias-value" id="biasStatus">ANALYZUJÍ SE DATA...</div>
+        <div class="bias-desc" id="biasReason">Načítání nejnovějších dat z makro kalendáře, výnosů US10Y a indexu VIX.</div>
+    </div>
 
-  news_text = (
-      "\n".join(headlines[:10])
-      if headlines
-      else "Žádné zásadní makro zprávy za 24h nebyly nalezeny."
-  )
-  has_red_flag = len(red_flags) > 0
+    <div class="grid">
+        <!-- Makro Kalendář -->
+        <div class="card">
+            <h3>Makroekonomická Data</h3>
+            <div class="metric"><span>CPI / PCE Inflace:</span> <span class="metric-val" id="cpiStatus">-</span></div>
+            <div class="metric"><span>NFP / Zaměstnanost:</span> <span class="metric-val" id="nfpStatus">-</span></div>
+            <div class="metric"><span>Fed / Rozhodnutí:</span> <span class="metric-val" id="fedStatus">-</span></div>
+        </div>
 
-  return news_text, has_red_flag, red_flags
+        <!-- Volatilita a Trh -->
+        <div class="card">
+            <h3>Tržní Podmínky</h3>
+            <div class="metric"><span>VIX Index:</span> <span class="metric-val" id="vixVal">-</span></div>
+            <div class="metric"><span>US 10Y Yields:</span> <span class="metric-val" id="us10yVal">-</span></div>
+            <div class="metric"><span>Pre-Market NQ:</span> <span class="metric-val" id="nqPremarket">-</span></div>
+        </div>
 
+        <!-- Dominantní Earnings -->
+        <div class="card">
+            <h3>Magnificent 7 Earnings</h3>
+            <div class="metric"><span>Dnešní Výsledky:</span> <span class="metric-val" id="earningsStatus">-</span></div>
+            <div class="metric"><span>Impakt na Nasdaq:</span> <span class="metric-val" id="earningsImpact">-</span></div>
+        </div>
+    </div>
 
-# Kontrola času při načtení
-curr_time, is_open_win, is_lunch = check_trading_window()
+    <button onclick="runScout()">Znova Skenovat Trh</button>
+</div>
 
-# Rozvržení - Vstupy
-col1, col2 = st.columns(2)
-
-with col1:
-  st.subheader("1. Živé makro zprávy (DXY, US10Y, VIX) & Red-Flag")
-  st.caption(f"🕒 Aktuální čas (SEČ): **{curr_time}**")
-
-  if is_open_win:
-    st.warning(
-        "⚠️ **Upozornění:** Právě probíhá divoké otvírací okno (15:30 - 15:45"
-        " SEČ). Vysoké riziko falešných průrazů a lovu Stop Lossů!"
-    )
-
-  if is_lunch:
-    st.warning(
-        "⚠️ **Upozornění:** Právě probíhá americká obědová pauza (18:00 - 19:30"
-        " SEČ). Nízká likvidita."
-    )
-
-  if st.button("🔄 Načíst a přefiltrovat zprávy (vč. DXY, Výnosů & VIX)"):
-    with st.spinner("Skenuji mezitržní korelátory a makro..."):
-      news, red_flag, rf_list = fetch_filtered_news()
-      st.session_state["news"] = news
-      st.session_state["red_flag"] = red_flag
-      st.session_state["rf_list"] = rf_list
-
-  if "news" in st.session_state:
-    if st.session_state.get("red_flag"):
-      st.error(
-          "🚨 **POZOR: Detekována HIGH-IMPACT Red-Flag událost!**\n"
-          + "\n".join(st.session_state["rf_list"])
-      )
-    st.text_area(
-        "Filtrované makro, DXY, Výnosy a VIX pro AI:",
-        st.session_state["news"],
-        height=180,
-        disabled=True,
-    )
-  else:
-    st.info("Klikni na tlačítko pro načtení makro dat.")
-
-with col2:
-  st.subheader("2. Multi-Timeframe Grafy (Any-Session Safety Mode)")
-  st.caption(
-      "AI vyhledá příležitost v jakékoliv fázi dne (mimo nebezpečný Open) s"
-      " důrazem na retest a ochranu účtu."
-  )
-
-  tf_higher = st.selectbox(
-      "Časový rámec 1. grafu (Vyšší TF):", ["15M", "1H", "4H"], index=0
-  )
-  img1_file = st.file_uploader(
-      f"1. Vyšší TF ({tf_higher}) - Trend & S/R zóny",
-      type=["png", "jpg", "jpeg"],
-  )
-
-  tf_lower = st.selectbox(
-      "Časový rámec 2. grafu (Nižší TF - Vstupní):", ["1M", "3M", "5M"], index=2
-  )
-  img2_file = st.file_uploader(
-      f"2. Nižší TF ({tf_lower}) - Detail vstupu / Price Action",
-      type=["png", "jpg", "jpeg"],
-  )
-
-st.markdown("---")
-
-# Zabalení odeslání do formuláře
-with st.form("analysis_form"):
-  st.subheader("3. Spuštění Funded Analýzy")
-  submit_button = st.form_submit_button(
-      "🚀 Vyhodnotit Multi-Timeframe Scénář", type="primary"
-  )
-
-if submit_button:
-  if not api_key:
-    st.error("Chybí Google Gemini API klíč v postranním panelu!")
-  elif "news" not in st.session_state or img1_file is None:
-    st.warning(
-        "Nahráním alespoň 1. grafu (Vyšší TF) a načtením zpráv aktivuješ"
-        " analýzu!"
-    )
-  else:
-    with st.spinner("AI provádí analýzu v režimu ochrany Funded účtu..."):
-      try:
-        model = genai.GenerativeModel("gemini-3.8-flash")
-
-        images_payload = []
-        img1 = process_image(img1_file)
-        images_payload.append(img1)
-
-        img2_status = "Nenahrán (použit jednografový režim)"
-        if img2_file is not None:
-          img2 = process_image(img2_file)
-          images_payload.append(img2)
-          img2_status = f"Nahrán ({tf_lower})"
-
-        prompt = f"""
-Jsi nekompromisní šéf-risk manager pro Funded Tradery (Apex/Topstep). Klient má posledních pár pokusů a tvým jediným úkolem je OCHRANA KAPITÁLU, ale zároveň schopnost Najít čistý obchod V JAKÉMKOLIV ČASOVÉM OKNĚ DNE, pokud je trh po otvíracím výplachu a v klidné strukturální fázi.
-
-PŘÍSNÁ BEZPEČNOSTNÍ PRAVIDLA PRO VYHODNOCENÍ:
-1. **Filtrování nebezpečných oken (Opening & Red-Flags):** 
-   - Pokud je čas mezi 15:30 a 15:45 SEČ (otvírací manipulace) nebo probíhá aktivní vyhlášení Red-Flag zprávy, povinně vydej **NO TRADE**.
-   - Mimo toto okno (např. 16:00, 17:00, 20:00 SEČ) aktivně vyhledávej čisté příležitosti v jakékoliv fázi seance.
-2. **Pravidlo Retestu (Anti-Sweep):** Nikdy nevolej vstup na první dotek S/R zóny. Vstup plánuj až PO proběhlém vybrání likvidity (Liquidity Sweep) a následném potvrzeném retestu (zavření svíčky s knotem/engulfing).
-3. **Bezpečnostní polštář pro Stop Loss:** Stop Loss umísti s polštářem dál za očividné knoty svíček, aby ho instituce nemohly snadno vyhmátnout.
-4. **Minimální skóre konfluence 85 bodů:** Pokud je trh nečitelný, vydat **NO TRADE**. Pokud je struktura jasná a retest potvrdil směr, schval obchod.
-
-VÝSTUPNÍ STRUKTURA (Odpověz striktně v češtině):
-
-1. **Bezpečnostní audit časového okna:** [Zhodnocení, zda aktuální čas a makro poskytují bezpečné prostředí pro obchod]
-2. **Analýza struktury a retestu:** [Kde proběhl Liquidity Sweep a jak vypadá potvrzený retest]
-3. **Matematické skóre konfluence:** [X / 100 bodů]
-4. **Finální Verdikt / Směr:** [LONG / SHORT / NO TRADE]
-5. **Přesná Vstupní Zóna (Až po retestu):** [Cenová hladina]
-6. **Take Profit (TP):** [Cílová cena]
-7. **Stop Loss (S bezpečnostním polštářem):** [Hladina ukrytá pod/nad likviditou]
-8. **Kalkulace RRR:** [Minimálně 1:2]
-9. **FUNDED TRADING SHRNUTÍ:** [Tučně: VERDIKT + Vstup | SL | TP]
-"""
-
-        response = model.generate_content([prompt] + images_payload)
-
-        st.success("Analýza byla úspěšně vygenerována!")
-        st.markdown(response.text)
-
-      except Exception as e:
-        st.error(f"Nastala chyba při komunikaci s API: {e}")
+<script src="scouter.js"></script>
+</body>
+</html>
