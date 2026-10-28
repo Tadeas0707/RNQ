@@ -1,9 +1,9 @@
 import streamlit as st
-import time
+import yfinance as yf
 
 # --- STREAMLIT PAGE CONFIG ---
 st.set_page_config(
-    page_title="MNQ Opening Bias Scouter",
+    page_title="MNQ Opening Bias Scouter (Live)",
     page_icon="⚡",
     layout="centered"
 )
@@ -43,44 +43,72 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- HEADER ---
-st.title("⚡ MNQ Wall Street Opening Scouter")
-st.caption("Window: 15:30 - 17:00 SEČ | Institucionální fundamentální filtr")
+st.title("⚡ MNQ Wall Street Opening Scouter (Živá data)")
+st.caption("Window: 15:30 - 17:00 SEČ | Reálná data z Yahoo Finance")
 
-# --- SIMULACE / DATA SCOUTERU ---
-# Zde se v budoucnu tahají reálná data z API (VIX, US10Y, Kalendář)
-vix_val = 16.4
-us10y_trend = "DOWN"
-nq_premarket = 0.52
-earnings_bias = "BULLISH"
-high_impact_news = False
+# --- STAHOVÁNÍ ŽIVÝCH DAT Z TRHU ---
+@st.cache_data(ttl=300) # Mezipaměť na 5 minut kvůli rychlosti
+def fetch_live_data():
+    try:
+        vix = yf.Ticker("^VIX").history(period="2d")
+        tnx = yf.Ticker("^TNX").history(period="2d")
+        nq = yf.Ticker("NQ=F").history(period="2d")
 
-# Vyhodnocení skóre
+        vix_val = round(vix['Close'].iloc[-1], 2)
+        vix_change = round(vix_val - vix['Close'].iloc[-2], 2)
+
+        tnx_val = tnx['Close'].iloc[-1]
+        tnx_prev = tnx['Close'].iloc[-2]
+        us10y_trend = "DOWN" if tnx_val < tnx_prev else "UP"
+
+        nq_close = nq['Close'].iloc[-1]
+        nq_open = nq['Open'].iloc[-1]
+        nq_pct = round(((nq_close - nq_open) / nq_open) * 100, 2)
+
+        return {
+            "success": True,
+            "vix": vix_val,
+            "vix_change": vix_change,
+            "us10y_trend": us10y_trend,
+            "nq_premarket": nq_pct
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+market = fetch_live_data()
+
+if not market["success"]:
+    st.error(f"Chyba při stahování dat: {market['error']}")
+    vix_val, vix_change, us10y_trend, nq_premarket = 16.4, 0.0, "DOWN", 0.0
+else:
+    vix_val = market["vix"]
+    vix_change = market["vix_change"]
+    us10y_trend = market["us10y_trend"]
+    nq_premarket = market["nq_premarket"]
+
+# --- VYHODNODOCENÍ SKÓRE ---
 score = 0
 reasons = []
 
-if high_impact_news:
+if vix_val >= 22:
     bias = "NO-TRADE / HIGH RISK"
     css_class = "neutral"
     color_code = "#d29922"
-    reasons.append("🚨 Klíčová makro data (CPI/NFP/FOMC) v kalendáři!")
+    reasons.append(f"🚨 VIX je příliš vysoký ({vix_val}). Hrozí extrémní volatilita!")
 else:
     if us10y_trend == "DOWN":
         score += 2
-        reasons.append("Pokles výnosů US10Y podporuje růst technologického indexu.")
+        reasons.append("Pokles výnosů US10Y podporuje růst technologického sektoru.")
     elif us10y_trend == "UP":
         score -= 2
         reasons.append("Růst výnosů US10Y vyvíjí tlak na pokles tech sektoru.")
         
-    if nq_premarket > 0.4:
+    if nq_premarket > 0.2:
         score += 1
-        reasons.append("Pre-market silně býčí.")
-    elif nq_premarket < -0.4:
+        reasons.append(f"Pre-market NQ roste ({nq_premarket}%).")
+    elif nq_premarket < -0.2:
         score -= 1
-        reasons.append("Pre-market pod prodejním tlakem.")
-
-    if earnings_bias == "BULLISH":
-        score += 2
-        reasons.append("Výsledky Big Tech překonaly očekávání.")
+        reasons.append(f"Pre-market NQ klesá ({nq_premarket}%).")
 
     if score >= 2:
         bias = "BULLISH BIAS"
@@ -88,47 +116,4 @@ else:
         color_code = "#3fb950"
     elif score <= -2:
         bias = "BEARISH BIAS"
-        css_class = "bearish"
-        color_code = "#f85149"
-    else:
-        bias = "NEUTRÁLNÍ / MIXED"
-        css_class = "neutral"
-        color_code = "#c9d1d9"
-
-# --- UI VÝSTUP ---
-st.markdown(f"""
-<div class="bias-card {css_class}">
-    <div class="bias-title">Wall Street Opening Bias</div>
-    <div style="font-size: 2.2rem; font-weight: bold; margin: 10px 0; color: {color_code};">{bias}</div>
-    <div style="font-size: 0.95rem; color: #8b949e;">{"<br>".join(reasons)}</div>
-</div>
-""", unsafe_allow_html=True)
-
-# --- METRIKY V MŘÍŽCE ---
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    st.markdown("""<div class="card">""", unsafe_allow_html=True)
-    st.subheader("Makro Data")
-    st.metric(label="CPI / Inflace", value="Čistý kalendář")
-    st.metric(label="Fed Sazby", value="Neutrální")
-    st.markdown("""</div>""", unsafe_allow_html=True)
-
-with col2:
-    st.markdown("""<div class="card">""", unsafe_allow_html=True)
-    st.subheader("Tržní Podmínky")
-    st.metric(label="VIX Index", value=vix_val, delta="-0.4")
-    st.metric(label="US 10Y Yields", value=us10y_trend)
-    st.markdown("""</div>""", unsafe_allow_html=True)
-
-with col3:
-    st.markdown("""<div class="card">""", unsafe_allow_html=True)
-    st.subheader("Big Tech Earnings")
-    st.metric(label="Magnificent 7", value=earnings_bias)
-    st.metric(label="Pre-market NQ", value=f"{nq_premarket}%")
-    st.markdown("""</div>""", unsafe_allow_html=True)
-
-if st.button("🔄 Znova Skenovat Trh"):
-    with st.spinner("Skenuji ověřené zdroje Wall Street..."):
-        time.sleep(0.6)
-    st.rerun()
+        css
