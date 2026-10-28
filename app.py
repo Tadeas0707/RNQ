@@ -1,5 +1,11 @@
 import streamlit as st
-import yfinance as yf
+
+# --- BEZPEČNÝ IMPORT YFINANCE ---
+try:
+    import yfinance as yf
+    YFINANCE_AVAILABLE = True
+except ImportError:
+    YFINANCE_AVAILABLE = False
 
 # --- STREAMLIT PAGE CONFIG ---
 st.set_page_config(
@@ -43,12 +49,14 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- HEADER ---
-st.title("⚡ MNQ Wall Street Opening Scouter (Živá data)")
-st.caption("Window: 15:30 - 17:00 SEČ | Reálná data z Yahoo Finance")
+st.title("⚡ MNQ Wall Street Opening Scouter")
+st.caption("Window: 15:30 - 17:00 SEČ | Živá data / Fallback režim")
 
-# --- STAHOVÁNÍ ŽIVÝCH DAT Z TRHU ---
-@st.cache_data(ttl=300) # Mezipaměť na 5 minut kvůli rychlosti
+# --- STAHOVÁNÍ DAT ---
+@st.cache_data(ttl=300)
 def fetch_live_data():
+    if not YFINANCE_AVAILABLE:
+        return {"success": False, "error": "Knihovna yfinance není nainstalována."}
     try:
         vix = yf.Ticker("^VIX").history(period="2d")
         tnx = yf.Ticker("^TNX").history(period="2d")
@@ -78,42 +86,12 @@ def fetch_live_data():
 market = fetch_live_data()
 
 if not market["success"]:
-    st.error(f"Chyba při stahování dat: {market['error']}")
-    vix_val, vix_change, us10y_trend, nq_premarket = 16.4, 0.0, "DOWN", 0.0
+    st.warning(f"⚠️ Živá data nedostupná (důvod: {market.get('error', 'Neznámá chyba')}). Běžím v záložním režimu.")
+    vix_val, vix_change, us10y_trend, nq_premarket = 16.4, -0.4, "DOWN", 0.52
 else:
     vix_val = market["vix"]
     vix_change = market["vix_change"]
     us10y_trend = market["us10y_trend"]
     nq_premarket = market["nq_premarket"]
 
-# --- VYHODNODOCENÍ SKÓRE ---
-score = 0
-reasons = []
-
-if vix_val >= 22:
-    bias = "NO-TRADE / HIGH RISK"
-    css_class = "neutral"
-    color_code = "#d29922"
-    reasons.append(f"🚨 VIX je příliš vysoký ({vix_val}). Hrozí extrémní volatilita!")
-else:
-    if us10y_trend == "DOWN":
-        score += 2
-        reasons.append("Pokles výnosů US10Y podporuje růst technologického sektoru.")
-    elif us10y_trend == "UP":
-        score -= 2
-        reasons.append("Růst výnosů US10Y vyvíjí tlak na pokles tech sektoru.")
-        
-    if nq_premarket > 0.2:
-        score += 1
-        reasons.append(f"Pre-market NQ roste ({nq_premarket}%).")
-    elif nq_premarket < -0.2:
-        score -= 1
-        reasons.append(f"Pre-market NQ klesá ({nq_premarket}%).")
-
-    if score >= 2:
-        bias = "BULLISH BIAS"
-        css_class = "bullish"
-        color_code = "#3fb950"
-    elif score <= -2:
-        bias = "BEARISH BIAS"
-        css
+# --- VY
